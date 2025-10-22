@@ -152,6 +152,10 @@ export const ShopProvider = ({ children }) => {
       // Get the user's ID token for authentication
       const idToken = await user.getIdToken();
 
+      // Capture the current frontend origin dynamically
+      const returnUrl = `${window.location.origin}/dashboard`;
+      console.log('📍 Return URL for OAuth:', returnUrl);
+
       // Call the backend Shopify auth function
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://shopify-auth-kh3i5xlqba-uc.a.run.app';
       console.log('🔗 Calling backend URL:', `${backendUrl}/shopify_auth`);
@@ -163,7 +167,8 @@ export const ShopProvider = ({ children }) => {
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          shop: shopDomain.toLowerCase()
+          shop: shopDomain.toLowerCase(),
+          return_url: returnUrl
         })
       });
 

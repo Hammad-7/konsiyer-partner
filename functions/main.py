@@ -41,7 +41,7 @@ SHOPIFY_API_KEY = os.environ.get("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 SHOPIFY_SCOPES = os.environ.get("SHOPIFY_SCOPES", "read_products")
 SHOPIFY_REDIRECT_URI = os.environ.get("SHOPIFY_REDIRECT_URI")
-FRONTEND_URL = os.environ.get("FRONTEND_URL")  # optional: full frontend origin
+FRONTEND_URL = os.environ.get("FRONTEND_URL")  # optional fallback: only used if return_url not provided
 
 # External Firebase Configuration (for affiliate stats)
 EXTERNAL_FIREBASE_PROJECT_ID = os.environ.get("EXTERNAL_FIREBASE_PROJECT_ID")
@@ -189,11 +189,64 @@ def _is_valid_shop_domain(shop: str) -> bool:
 	return re.match(r"^[a-z0-9][a-z0-9\-]*\.myshopify\.com$", shop) is not None
 
 
+def _is_valid_return_url(url: str) -> bool:
+	"""Validate that the return URL is from a trusted origin to prevent open redirect vulnerabilities.
+	
+	Args:
+		url: The return URL to validate
+		
+	Returns:
+		True if the URL is valid and from a trusted origin, False otherwise
+	"""
+	if not url:
+		return False
+	
+	try:
+		parsed = urllib.parse.urlparse(url)
+		
+		# Must have a scheme (http/https)
+		if parsed.scheme not in ('http', 'https'):
+			logger.warning(f"Invalid scheme in return URL: {parsed.scheme}")
+			return False
+		
+		# Must have a hostname
+		if not parsed.hostname:
+			logger.warning("No hostname in return URL")
+			return False
+		
+		# List of trusted origins (patterns)
+		# In production, you should configure this more strictly
+		trusted_patterns = [
+			r'^localhost$',
+			r'^127\.0\.0\.1$',
+			r'^.*\.vercel\.app$',
+			r'^.*\.netlify\.app$',
+			r'^.*\.web\.app$',
+			r'^.*\.firebaseapp\.com$',
+			# Add your production domain patterns here
+		]
+		
+		hostname = parsed.hostname.lower()
+		
+		# Check if hostname matches any trusted pattern
+		for pattern in trusted_patterns:
+			if re.match(pattern, hostname):
+				logger.info(f"Return URL validated: {url}")
+				return True
+		
+		logger.warning(f"Return URL hostname not in trusted list: {hostname}")
+		return False
+		
+	except Exception as e:
+		logger.error(f"Error validating return URL: {str(e)}")
+		return False
+
+
 @https_fn.on_request()
 def shopify_auth(req: https_fn.Request) -> https_fn.Response:
 	"""Start Shopify OAuth to verify shop ownership.
 
-	Expects: JSON or form body or query param with 'shop' (shop domain).
+	Expects: JSON or form body or query param with 'shop' (shop domain) and 'return_url' (frontend URL to redirect back to).
 	Returns: 302 redirect to Shopify authorize URL with state equal to a Firestore-backed nonce.
 	"""
 	# Handle CORS preflight requests
@@ -218,10 +271,17 @@ def shopify_auth(req: https_fn.Request) -> https_fn.Response:
 			body = _get_request_query(req)
 
 		shop = (body.get("shop") or body.get("shop_domain") or "").strip()
+		return_url = (body.get("return_url") or "").strip()
 
 		if not _is_valid_shop_domain(shop):
 			headers = _add_cors_headers({})
 			return https_fn.Response("Invalid shop domain", status=400, headers=headers)
+
+		# Validate the return URL for security (prevent open redirect attacks)
+		if return_url and not _is_valid_return_url(return_url):
+			logger.warning(f"Invalid or untrusted return URL provided: {return_url}")
+			headers = _add_cors_headers({})
+			return https_fn.Response("Invalid return URL - must be from a trusted origin", status=400, headers=headers)
 
 		db = firestore.client()
 		
@@ -240,11 +300,20 @@ def shopify_auth(req: https_fn.Request) -> https_fn.Response:
 		# Create a Firestore state document that will be referenced by Shopify's redirect
 		state_id = secrets.token_urlsafe(24)
 		state_ref = db.collection("shopify_states").document(state_id)
-		state_ref.set({
+		
+		# Store the return URL in the state document for use in the callback
+		state_data = {
 			"shop": shop,
 			"verified": False,
 			"created_at": firestore.SERVER_TIMESTAMP,
-		})
+		}
+		
+		# Only add return_url if it was provided and validated
+		if return_url:
+			state_data["return_url"] = return_url
+			logger.info(f"Storing return URL in state: {return_url}")
+		
+		state_ref.set(state_data)
 
 		params = {
 			"client_id": SHOPIFY_API_KEY,
@@ -275,7 +344,8 @@ def shopify_callback(req: https_fn.Request) -> https_fn.Response:
 	"""Handle Shopify OAuth redirect: verify HMAC and mark the state doc as verified.
 
 	Does NOT exchange code for an access token. After verifying HMAC the state doc is
-	updated and the user is redirected back to the frontend with the state id and shop.
+	updated and the user is redirected back to the frontend with the state id and shop
+	using the return_url stored in the state document.
 	"""
 	try:
 		qp = _get_request_query(req)
@@ -300,21 +370,46 @@ def shopify_callback(req: https_fn.Request) -> https_fn.Response:
 		db = firestore.client()
 		state_ref = db.collection("shopify_states").document(state_id)
 		state = state_ref.get()
+		
+		# Get the return URL from the state document
+		return_url = None
 		if state.exists:
 			data = state.to_dict()
+			return_url = data.get("return_url")
 			# update verified flag and timestamp
 			state_ref.update({"verified": True, "verified_at": firestore.SERVER_TIMESTAMP})
+			logger.info(f"Retrieved return URL from state: {return_url}")
 		else:
 			# If the state doc doesn't exist, create it as verified (robustness)
 			state_ref.set({"shop": shop, "verified": True, "verified_at": firestore.SERVER_TIMESTAMP})
+			logger.warning(f"State document {state_id} did not exist, created new verified state")
 
-		# Redirect the user back to the frontend with state and shop
+		# Build the redirect location
 		dashboard_path = f"/dashboard?shop={urllib.parse.quote_plus(shop)}&state={urllib.parse.quote_plus(state_id)}"
-		if FRONTEND_URL:
+		
+		# Use the stored return_url if available and valid, otherwise fallback to FRONTEND_URL or relative path
+		if return_url:
+			# Parse the return URL to get the origin
+			try:
+				parsed = urllib.parse.urlparse(return_url)
+				origin = f"{parsed.scheme}://{parsed.netloc}"
+				location = origin + dashboard_path
+				logger.info(f"Redirecting to stored return URL: {location}")
+			except Exception as e:
+				logger.error(f"Error parsing return URL: {str(e)}, falling back")
+				# Fallback to FRONTEND_URL or relative path
+				if FRONTEND_URL:
+					location = FRONTEND_URL.rstrip("/") + dashboard_path
+				else:
+					location = dashboard_path
+		elif FRONTEND_URL:
 			location = FRONTEND_URL.rstrip("/") + dashboard_path
+			logger.info(f"Using FRONTEND_URL fallback: {location}")
 		else:
 			location = dashboard_path
+			logger.info(f"Using relative path fallback: {location}")
 
+		logger.info(f"Final redirect location: {location}")
 		return https_fn.Response("", status=302, headers={"Location": location})
 	except Exception:
 		logger.exception("Unexpected error in shopify_callback")
