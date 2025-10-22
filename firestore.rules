@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    }
+    
+    // Allow users to read and write their own user document
+    // Allow admins to read all user documents
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to read and write their own shops subcollection
+      // Allow admins to read and write all shops (needed for token refresh)
+      match /shops/{shopId} {
+        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+    }
+    
+    // Allow reading and writing shopify_states for OAuth flow
+    // These are temporary documents used during Shopify OAuth verification
+    match /shopify_states/{stateId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Deny all other requests
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
