@@ -2,34 +2,127 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is admin
-    function isAdmin() {
-      return request.auth != null && 
-             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    
+    // ===================================================================
+    // HELPER FUNCTIONS - Using Custom Claims (Secure)
+    // ===================================================================
+    
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
     }
     
-    // Allow users to read and write their own user document
-    // Allow admins to read all user documents
+    // Get user ID from auth context
+    function getUserId() {
+      return request.auth.uid;
+    }
+    
+    // Check if user is admin via CUSTOM CLAIMS (not Firestore)
+    // This is SECURE because custom claims are in the JWT token
+    function isAdmin() {
+      return isSignedIn() && 
+             (request.auth.token.admin == true || 
+              request.auth.token.superAdmin == true);
+    }
+    
+    // Check if user is super admin via CUSTOM CLAIMS
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.superAdmin == true;
+    }
+    
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isSignedIn() && getUserId() == userId;
+    }
+    
+    // ===================================================================
+    // USERS COLLECTION
+    // ===================================================================
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Read: Users can read their own document, admins can read any
+      allow read: if isOwner(userId) || isAdmin();
       
-      // Allow users to read and write their own shops subcollection
-      // Allow admins to read and write all shops (needed for token refresh)
+      // Create: Users can create their own document BUT cannot set role fields
+      allow create: if isOwner(userId) && 
+                       !request.resource.data.keys().hasAny([
+                         'role', 'isAdmin', 'isSuperAdmin', 
+                         'lastRoleUpdate', 'updatedBy'
+                       ]);
+      
+      // Update: Users can update their own document BUT cannot modify role fields
+      allow update: if isOwner(userId) && 
+                       !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['role', 'isAdmin', 'isSuperAdmin', 
+                                  'lastRoleUpdate', 'updatedBy']);
+      
+      // Delete: Only admins can delete users
+      allow delete: if isAdmin();
+      
+      // Shops subcollection
       match /shops/{shopId} {
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
     }
     
-    // Allow reading and writing shopify_states for OAuth flow
-    // These are temporary documents used during Shopify OAuth verification
+    // ===================================================================
+    // SHOPIFY STATES (OAuth Flow)
+    // ===================================================================
     match /shopify_states/{stateId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
     
-    // Deny all other requests
+    // ===================================================================
+    // SHOPS COLLECTION (if you have a top-level shops collection)
+    // ===================================================================
+    match /shops/{shopId} {
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == getUserId() || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && 
+                       (resource.data.userId == getUserId() || isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // ===================================================================
+    // ORDERS COLLECTION
+    // ===================================================================
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if false; // Only via backend
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ===================================================================
+    // INVOICES COLLECTION
+    // ===================================================================
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == getUserId() || isAdmin());
+      allow write: if false; // Only via backend
+    }
+    
+    // ===================================================================
+    // AFFILIATE STATS COLLECTION
+    // ===================================================================
+    match /affiliate_stats/{statId} {
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == getUserId() || isAdmin());
+      allow write: if false; // Only via backend
+    }
+    
+    // ===================================================================
+    // ADMIN LOGS COLLECTION
+    // ===================================================================
+    match /admin_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only via backend
+    }
+    
+    // ===================================================================
+    // DEFAULT DENY - Important for security!
+    // ===================================================================
     match /{document=**} {
       allow read, write: if false;
     }

@@ -823,3 +823,471 @@ def fetch_affiliate_stats(req: https_fn.Request) -> https_fn.Response:
 	except Exception as e:
 		logger.exception("Unexpected error in fetch_affiliate_stats")
 		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+# ============================================================================
+# ADMIN MANAGEMENT ENDPOINTS
+# ============================================================================
+
+# Super Admin UID - This user has exclusive privileges to manage admins
+SUPER_ADMIN_UID = "GoWdiwdj6zUtlH6cZo2wla9GpYB2"
+
+
+def _is_super_admin(uid: str) -> bool:
+	"""Check if a user is the super admin.
+	
+	Args:
+		uid: User ID to check
+		
+	Returns:
+		True if user is the super admin, False otherwise
+	"""
+	if not uid or uid != SUPER_ADMIN_UID:
+		return False
+	
+	try:
+		db = firestore.client()
+		user_ref = db.collection("users").document(uid)
+		user_doc = user_ref.get()
+		
+		if user_doc.exists:
+			user_data = user_doc.to_dict()
+			return (user_data.get("role") == "super_admin" or 
+					user_data.get("isSuperAdmin") == True)
+		
+		return False
+	except Exception as e:
+		logger.error(f"Error checking super admin status: {str(e)}")
+		return False
+
+
+def _is_admin(uid: str) -> bool:
+	"""Check if a user has admin privileges (includes super admin).
+	
+	Args:
+		uid: User ID to check
+		
+	Returns:
+		True if user is an admin or super admin, False otherwise
+	"""
+	if not uid:
+		return False
+	
+	try:
+		db = firestore.client()
+		user_ref = db.collection("users").document(uid)
+		user_doc = user_ref.get()
+		
+		if user_doc.exists:
+			user_data = user_doc.to_dict()
+			return (user_data.get("role") in ["admin", "super_admin"] or
+					user_data.get("isAdmin") == True or
+					user_data.get("isSuperAdmin") == True)
+		
+		return False
+	except Exception as e:
+		logger.error(f"Error checking admin status: {str(e)}")
+		return False
+
+
+@https_fn.on_request()
+def check_admin_status(req: https_fn.Request) -> https_fn.Response:
+	"""Check if the authenticated user is an admin or super admin.
+	
+	Expects: POST request with idToken in body
+	Returns: JSON with admin and super admin status
+	"""
+	# Handle CORS preflight
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"})
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response("Method Not Allowed", status=405, headers=headers)
+
+		body = req.get_json(silent=True) or {}
+		id_token = body.get("idToken") or body.get("id_token")
+		
+		if not id_token:
+			return https_fn.Response(json.dumps({"error": "Missing idToken"}), status=400, headers=headers)
+
+		# Verify ID token
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception:
+			logger.exception("Failed to verify id token in check_admin_status")
+			return https_fn.Response(json.dumps({"error": "Invalid ID token"}), status=401, headers=headers)
+
+		is_super = _is_super_admin(uid)
+		is_regular_admin = _is_admin(uid)
+
+		return https_fn.Response(
+			json.dumps({
+				"userId": uid,
+				"isAdmin": is_regular_admin,
+				"isSuperAdmin": is_super
+			}),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in check_admin_status")
+		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request()
+def get_all_admins(req: https_fn.Request) -> https_fn.Response:
+	"""Get list of all admin users (super admin only).
+	
+	Expects: POST request with idToken in body
+	Returns: JSON array of admin users
+	"""
+	# Handle CORS preflight
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"})
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response("Method Not Allowed", status=405, headers=headers)
+
+		body = req.get_json(silent=True) or {}
+		id_token = body.get("idToken") or body.get("id_token")
+		
+		if not id_token:
+			return https_fn.Response(json.dumps({"error": "Missing idToken"}), status=400, headers=headers)
+
+		# Verify ID token and check super admin
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception:
+			logger.exception("Failed to verify id token in get_all_admins")
+			return https_fn.Response(json.dumps({"error": "Invalid ID token"}), status=401, headers=headers)
+
+		if not _is_super_admin(uid):
+			return https_fn.Response(
+				json.dumps({"error": "Only super admin can view admin list"}),
+				status=403,
+				headers=headers
+			)
+
+		# Fetch all admin users
+		db = firestore.client()
+		users_ref = db.collection("users")
+		users_snapshot = users_ref.stream()
+
+		admins = []
+		for user_doc in users_snapshot:
+			user_data = user_doc.to_dict()
+			user_id = user_doc.id
+			
+			is_admin_user = (user_data.get("role") in ["admin", "super_admin"] or
+							user_data.get("isAdmin") == True or
+							user_data.get("isSuperAdmin") == True)
+			
+			if is_admin_user:
+				admins.append({
+					"id": user_id,
+					"email": user_data.get("email", "N/A"),
+					"displayName": user_data.get("displayName", "N/A"),
+					"role": user_data.get("role", "admin"),
+					"isSuperAdmin": user_id == SUPER_ADMIN_UID or user_data.get("isSuperAdmin") == True,
+					"createdAt": user_data.get("createdAt"),
+					"lastUpdated": user_data.get("lastUpdated")
+				})
+
+		# Sort: super admin first
+		admins.sort(key=lambda x: (not x["isSuperAdmin"], x.get("createdAt", 0)))
+
+		return https_fn.Response(
+			json.dumps({"admins": admins, "total": len(admins)}),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in get_all_admins")
+		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request()
+def add_admin(req: https_fn.Request) -> https_fn.Response:
+	"""Add a user as admin (super admin only).
+	
+	Expects: POST request with idToken and targetUserId in body
+	Returns: Success message
+	"""
+	# Handle CORS preflight
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"})
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response("Method Not Allowed", status=405, headers=headers)
+
+		body = req.get_json(silent=True) or {}
+		id_token = body.get("idToken") or body.get("id_token")
+		target_user_id = body.get("targetUserId") or body.get("target_user_id")
+		
+		if not id_token:
+			return https_fn.Response(json.dumps({"error": "Missing idToken"}), status=400, headers=headers)
+		
+		if not target_user_id:
+			return https_fn.Response(json.dumps({"error": "Missing targetUserId"}), status=400, headers=headers)
+
+		# Verify ID token and check super admin
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception:
+			logger.exception("Failed to verify id token in add_admin")
+			return https_fn.Response(json.dumps({"error": "Invalid ID token"}), status=401, headers=headers)
+
+		if not _is_super_admin(uid):
+			return https_fn.Response(
+				json.dumps({"error": "Only super admin can add new admins"}),
+				status=403,
+				headers=headers
+			)
+
+		# Check if target user is super admin
+		if target_user_id == SUPER_ADMIN_UID:
+			return https_fn.Response(
+				json.dumps({"error": "Cannot modify super admin privileges"}),
+				status=400,
+				headers=headers
+			)
+
+		# Check if target user exists
+		db = firestore.client()
+		target_user_ref = db.collection("users").document(target_user_id)
+		target_user_doc = target_user_ref.get()
+		
+		if not target_user_doc.exists:
+			return https_fn.Response(
+				json.dumps({"error": "Target user not found"}),
+				status=404,
+				headers=headers
+			)
+
+		# Update user to admin
+		target_user_ref.update({
+			"role": "admin",
+			"isAdmin": True,
+			"lastUpdated": firestore.SERVER_TIMESTAMP,
+			"promotedBy": uid,
+			"promotedAt": firestore.SERVER_TIMESTAMP
+		})
+
+		logger.info(f"User {target_user_id} promoted to admin by super admin {uid}")
+
+		return https_fn.Response(
+			json.dumps({
+				"success": True,
+				"message": "User successfully promoted to admin",
+				"userId": target_user_id
+			}),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in add_admin")
+		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request()
+def remove_admin(req: https_fn.Request) -> https_fn.Response:
+	"""Remove admin privileges from a user (super admin only).
+	
+	Expects: POST request with idToken and targetUserId in body
+	Returns: Success message
+	"""
+	# Handle CORS preflight
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"})
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response("Method Not Allowed", status=405, headers=headers)
+
+		body = req.get_json(silent=True) or {}
+		id_token = body.get("idToken") or body.get("id_token")
+		target_user_id = body.get("targetUserId") or body.get("target_user_id")
+		
+		if not id_token:
+			return https_fn.Response(json.dumps({"error": "Missing idToken"}), status=400, headers=headers)
+		
+		if not target_user_id:
+			return https_fn.Response(json.dumps({"error": "Missing targetUserId"}), status=400, headers=headers)
+
+		# Verify ID token and check super admin
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception:
+			logger.exception("Failed to verify id token in remove_admin")
+			return https_fn.Response(json.dumps({"error": "Invalid ID token"}), status=401, headers=headers)
+
+		if not _is_super_admin(uid):
+			return https_fn.Response(
+				json.dumps({"error": "Only super admin can remove admins"}),
+				status=403,
+				headers=headers
+			)
+
+		# Prevent removing super admin
+		if target_user_id == SUPER_ADMIN_UID:
+			return https_fn.Response(
+				json.dumps({"error": "Cannot remove super admin privileges"}),
+				status=400,
+				headers=headers
+			)
+
+		# Prevent super admin from removing themselves (redundant but safe)
+		if uid == target_user_id:
+			return https_fn.Response(
+				json.dumps({"error": "Super admin cannot remove their own admin privileges"}),
+				status=400,
+				headers=headers
+			)
+
+		# Check if target user exists
+		db = firestore.client()
+		target_user_ref = db.collection("users").document(target_user_id)
+		target_user_doc = target_user_ref.get()
+		
+		if not target_user_doc.exists:
+			return https_fn.Response(
+				json.dumps({"error": "Target user not found"}),
+				status=404,
+				headers=headers
+			)
+
+		# Remove admin privileges
+		target_user_ref.update({
+			"role": "user",
+			"isAdmin": False,
+			"isSuperAdmin": False,
+			"lastUpdated": firestore.SERVER_TIMESTAMP,
+			"demotedBy": uid,
+			"demotedAt": firestore.SERVER_TIMESTAMP
+		})
+
+		logger.info(f"Admin privileges removed from user {target_user_id} by super admin {uid}")
+
+		return https_fn.Response(
+			json.dumps({
+				"success": True,
+				"message": "Admin privileges successfully removed",
+				"userId": target_user_id
+			}),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in remove_admin")
+		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request()
+def init_super_admin(req: https_fn.Request) -> https_fn.Response:
+	"""
+	Initialize super admin with custom claims.
+	This should be called ONCE to set up the super admin.
+	
+	Request body: { "secret": "your-secret-key" }
+	"""
+	# Add CORS headers
+	headers = {
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Content-Type": "application/json"
+	}
+	
+	# Handle CORS preflight
+	if req.method == "OPTIONS":
+		return https_fn.Response("", status=200, headers=headers)
+	
+	if req.method != "POST":
+		return https_fn.Response(
+			json.dumps({"error": "Method not allowed"}),
+			status=405,
+			headers=headers
+		)
+	
+	try:
+		body = req.get_json(silent=True) or {}
+		secret = body.get("secret")
+		
+		# Check secret - for security, this should match an environment variable
+		# For now, we'll use a simple check
+		expected_secret = os.environ.get("SUPER_ADMIN_INIT_SECRET", "konsiyer-super-admin-2025")
+		
+		if secret != expected_secret:
+			logger.warning("Unauthorized super admin initialization attempt")
+			return https_fn.Response(
+				json.dumps({"error": "Invalid secret"}),
+				status=401,
+				headers=headers
+			)
+		
+		# Set custom claims for super admin
+		logger.info(f"Setting custom claims for super admin: {SUPER_ADMIN_UID}")
+		
+		custom_claims = {
+			"superAdmin": True,
+			"admin": True,
+			"role": "super_admin"
+		}
+		
+		admin_auth.set_custom_user_claims(SUPER_ADMIN_UID, custom_claims)
+		
+		# Also update Firestore for record keeping
+		db = firestore.client()
+		user_ref = db.collection("users").document(SUPER_ADMIN_UID)
+		user_ref.set({
+			"role": "super_admin",
+			"isSuperAdmin": True,
+			"isAdmin": True,
+			"customClaimsSet": True,
+			"lastUpdated": firestore.SERVER_TIMESTAMP
+		}, merge=True)
+		
+		logger.info(f"Super admin initialized successfully: {SUPER_ADMIN_UID}")
+		
+		return https_fn.Response(
+			json.dumps({
+				"success": True,
+				"message": "Super admin initialized successfully",
+				"userId": SUPER_ADMIN_UID,
+				"customClaims": custom_claims,
+				"note": "User must sign out and sign back in for changes to take effect"
+			}),
+			status=200,
+			headers=headers
+		)
+		
+	except Exception as e:
+		logger.exception("Error initializing super admin")
+		return https_fn.Response(
+			json.dumps({"error": str(e)}),
+			status=500,
+			headers=headers
+		)

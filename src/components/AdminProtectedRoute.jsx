@@ -5,7 +5,7 @@ import { isUserAdmin } from '../services/adminService';
 import LoadingSpinner from './LoadingSpinner';
 
 const AdminProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin: contextIsAdmin } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -13,6 +13,13 @@ const AdminProtectedRoute = ({ children }) => {
     const checkAdminStatus = async () => {
       if (user) {
         try {
+          // First check context (faster), then verify with service
+          if (contextIsAdmin) {
+            setIsAdmin(true);
+            setChecking(false);
+            return;
+          }
+          
           const adminStatus = await isUserAdmin(user.uid);
           setIsAdmin(adminStatus);
         } catch (error) {
@@ -26,7 +33,7 @@ const AdminProtectedRoute = ({ children }) => {
     if (!loading) {
       checkAdminStatus();
     }
-  }, [user, loading]);
+  }, [user, loading, contextIsAdmin]);
 
   if (loading || checking) {
     return (

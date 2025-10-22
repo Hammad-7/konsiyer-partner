@@ -7,6 +7,7 @@ A modern Shopify store management dashboard built with React, Vite, and Tailwind
 - 🏪 **Shopify Integration** - Connect and manage your Shopify store
 - 🔐 **Firebase Authentication** - Secure login with email/password and Google
 - 📊 **Analytics Dashboard** - View store statistics and product insights
+- 👑 **Super Admin System** - Comprehensive role-based access control (RBAC) with admin management
 - 🎨 **Modern UI** - Beautiful, responsive design with Tailwind CSS
 - ⚡ **Fast Development** - Vite for lightning-fast dev server and builds
 
@@ -67,6 +68,36 @@ src/
 ├── services/           # API services
 └── assets/            # Static assets
 ```
+
+## Super Admin System
+
+This project includes a comprehensive super admin system with role-based access control:
+
+- **Super Admin**: Full system control, can add/remove admins
+- **Admin**: Access to admin panel, manage users and shops
+- **User**: Standard user privileges
+
+### Quick Setup
+
+1. Initialize super admin:
+
+   ```bash
+   cd functions
+   python3 init_super_admin.py
+   ```
+
+2. Deploy backend functions:
+
+   ```bash
+   firebase deploy --only functions
+   ```
+
+3. Login as super admin and access the Admin Management tab at `/admin`
+
+📚 **Documentation:**
+
+- [Super Admin Setup Guide](SUPER_ADMIN_SETUP.md) - Quick setup instructions
+- [Super Admin System Documentation](SUPER_ADMIN_SYSTEM.md) - Comprehensive system details
 
 ## Environment Variables
 
