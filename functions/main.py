@@ -223,6 +223,7 @@ def _is_valid_return_url(url: str) -> bool:
 			r'^.*\.netlify\.app$',
 			r'^.*\.web\.app$',
 			r'^.*\.firebaseapp\.com$',
+			r'^.*\.konsiyer\.com$',
 			# Add your production domain patterns here
 		]
 		
@@ -994,14 +995,28 @@ def get_all_admins(req: https_fn.Request) -> https_fn.Response:
 							user_data.get("isSuperAdmin") == True)
 			
 			if is_admin_user:
+				# Convert Firestore timestamps to ISO format strings for JSON serialization
+				created_at = user_data.get("createdAt")
+				last_updated = user_data.get("lastUpdated")
+				
+				if created_at and hasattr(created_at, 'isoformat'):
+					created_at = created_at.isoformat()
+				elif created_at and hasattr(created_at, 'timestamp'):
+					created_at = created_at.timestamp() * 1000  # Convert to milliseconds
+				
+				if last_updated and hasattr(last_updated, 'isoformat'):
+					last_updated = last_updated.isoformat()
+				elif last_updated and hasattr(last_updated, 'timestamp'):
+					last_updated = last_updated.timestamp() * 1000  # Convert to milliseconds
+				
 				admins.append({
 					"id": user_id,
 					"email": user_data.get("email", "N/A"),
 					"displayName": user_data.get("displayName", "N/A"),
 					"role": user_data.get("role", "admin"),
 					"isSuperAdmin": user_id == SUPER_ADMIN_UID or user_data.get("isSuperAdmin") == True,
-					"createdAt": user_data.get("createdAt"),
-					"lastUpdated": user_data.get("lastUpdated")
+					"createdAt": created_at,
+					"lastUpdated": last_updated
 				})
 
 		# Sort: super admin first
@@ -1081,10 +1096,27 @@ def add_admin(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 
-		# Update user to admin
+		# Set custom claims for admin access (CRITICAL for Firestore rules)
+		try:
+			custom_claims = {
+				"admin": True,
+				"role": "admin"
+			}
+			admin_auth.set_custom_user_claims(target_user_id, custom_claims)
+			logger.info(f"Custom claims set for user {target_user_id}: {custom_claims}")
+		except Exception as e:
+			logger.error(f"Failed to set custom claims for user {target_user_id}: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Failed to set admin privileges: {str(e)}"}),
+				status=500,
+				headers=headers
+			)
+
+		# Update Firestore user document
 		target_user_ref.update({
 			"role": "admin",
 			"isAdmin": True,
+			"customClaimsSet": True,
 			"lastUpdated": firestore.SERVER_TIMESTAMP,
 			"promotedBy": uid,
 			"promotedAt": firestore.SERVER_TIMESTAMP
@@ -1095,8 +1127,9 @@ def add_admin(req: https_fn.Request) -> https_fn.Response:
 		return https_fn.Response(
 			json.dumps({
 				"success": True,
-				"message": "User successfully promoted to admin",
-				"userId": target_user_id
+				"message": "User successfully promoted to admin. User must sign out and sign back in for changes to take effect.",
+				"userId": target_user_id,
+				"note": "Custom claims have been set - user needs to refresh their session"
 			}),
 			status=200,
 			headers=headers
@@ -1178,11 +1211,28 @@ def remove_admin(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 
-		# Remove admin privileges
+		# Remove custom claims (CRITICAL for Firestore rules)
+		try:
+			custom_claims = {
+				"admin": False,
+				"role": "user"
+			}
+			admin_auth.set_custom_user_claims(target_user_id, custom_claims)
+			logger.info(f"Custom claims removed for user {target_user_id}")
+		except Exception as e:
+			logger.error(f"Failed to remove custom claims for user {target_user_id}: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Failed to remove admin privileges: {str(e)}"}),
+				status=500,
+				headers=headers
+			)
+
+		# Remove admin privileges from Firestore
 		target_user_ref.update({
 			"role": "user",
 			"isAdmin": False,
 			"isSuperAdmin": False,
+			"customClaimsSet": False,
 			"lastUpdated": firestore.SERVER_TIMESTAMP,
 			"demotedBy": uid,
 			"demotedAt": firestore.SERVER_TIMESTAMP
@@ -1193,8 +1243,9 @@ def remove_admin(req: https_fn.Request) -> https_fn.Response:
 		return https_fn.Response(
 			json.dumps({
 				"success": True,
-				"message": "Admin privileges successfully removed",
-				"userId": target_user_id
+				"message": "Admin privileges successfully removed. User must sign out and sign back in for changes to take effect.",
+				"userId": target_user_id,
+				"note": "Custom claims have been removed - user needs to refresh their session"
 			}),
 			status=200,
 			headers=headers

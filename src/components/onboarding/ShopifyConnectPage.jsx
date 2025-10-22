@@ -87,10 +87,8 @@ const ShopifyConnectPage = () => {
           
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto h-16 w-16 bg-green-600 rounded-2xl flex items-center justify-center mb-4">
-              <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15.337 2.894c-.636-0.088-1.164 0.152-1.516 0.456-0.088 0.064-0.152 0.128-0.216 0.216-0.568-0.184-1.24-0.128-1.808 0.304-1.824 1.456-2.432 4.128-2.704 6.264-1.088 0.336-1.864 0.584-1.936 0.608-0.568 0.176-0.592 0.2-0.664 0.728-0.056 0.392-1.552 11.992-1.552 11.992l12.8 2.216 5.856-1.456c0 0-2.248-15.048-2.272-15.136-0.024-0.12-0.112-0.2-0.216-0.2-0.216 0-0.552 0-1.056 0 0-0.608-0.2-1.832-0.856-3.096zm-1.584 4.896c-0.352 0.104-0.76 0.232-1.2 0.368 0.192-1.512 0.64-2.992 1.2-3.992v3.624zm-2.928 0.888c0.424-0.128 0.888-0.272 1.392-0.432v4.32l-1.392-3.888zm2.928 1.2v3.816l-1.2-3.344c0.392-0.152 0.784-0.304 1.2-0.472zm1.536-4.68c0.512 0.928 0.768 1.776 0.832 2.328-0.312 0.096-0.648 0.2-1.008 0.312v-4.128c0.064 0.048 0.12 0.104 0.176 0.16z"/>
-              </svg>
+            <div className="mx-auto h-20 w-20 rounded-2xl flex items-center justify-center mb-6">
+                <img src={'/icons/shopify_glyph.svg'} alt="Shopify" className="h-20 w-20" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Connect Shopify Store

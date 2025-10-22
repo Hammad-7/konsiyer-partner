@@ -88,7 +88,7 @@ const AdminManagement = () => {
       
       await addAdmin(user.uid, selectedUser.id);
       
-      setSuccess(`Successfully promoted ${selectedUser.email} to admin`);
+      setSuccess(`Successfully promoted ${selectedUser.email} to admin. They must sign out and sign back in for changes to take effect.`);
       setIsAddDialogOpen(false);
       setSelectedUser(null);
       setSearchTerm('');
@@ -97,8 +97,8 @@ const AdminManagement = () => {
       // Reload admin list
       await loadAdmins();
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000);
     } catch (error) {
       console.error('Error adding admin:', error);
       setError('Failed to add admin: ' + error.message);
@@ -119,15 +119,15 @@ const AdminManagement = () => {
       
       await removeAdmin(user.uid, selectedUser.id);
       
-      setSuccess(`Successfully removed admin privileges from ${selectedUser.email}`);
+      setSuccess(`Successfully removed admin privileges from ${selectedUser.email}. They must sign out and sign back in for changes to take effect.`);
       setIsRemoveDialogOpen(false);
       setSelectedUser(null);
       
       // Reload admin list
       await loadAdmins();
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000);
     } catch (error) {
       console.error('Error removing admin:', error);
       setError('Failed to remove admin: ' + error.message);

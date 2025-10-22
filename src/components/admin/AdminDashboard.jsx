@@ -42,8 +42,9 @@ const AdminDashboard = () => {
       ]);
       
       setStats(statsData);
-      setUsers(usersData.users);
-      setShops(shopsData);
+      // usersData returns { users: [], lastDoc, hasMore }, so we extract the users array
+      setUsers(usersData.users || []);
+      setShops(shopsData || []);
     } catch (error) {
       console.error('Error loading admin data:', error);
     } finally {
@@ -64,8 +65,8 @@ const AdminDashboard = () => {
         searchShops(searchTerm)
       ]);
       
-      setUsers(userResults);
-      setShops(shopResults);
+      setUsers(userResults || []);
+      setShops(shopResults || []);
     } catch (error) {
       console.error('Error searching:', error);
     } finally {
