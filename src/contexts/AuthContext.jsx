@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut
 } from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { googleProvider } from '../firebase';
 
 const AuthContext = createContext();
@@ -35,6 +36,60 @@ export const AuthProvider = ({ children }) => {
   // Track if component is mounted to prevent state updates after unmount
   const isMounted = useRef(true);
   const refreshTimerRef = useRef(null);
+  
+  /**
+   * IMPORTANT: Sync user data from Firebase Auth to Firestore
+   * This ensures email and displayName are always up-to-date in Firestore
+   */
+  const syncUserToFirestore = useCallback(async (firebaseUser) => {
+    if (!firebaseUser) return;
+    
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      // Prepare user data from Firebase Auth
+      const userData = {
+        email: firebaseUser.email,
+        userId: firebaseUser.uid,
+        lastUpdated: serverTimestamp(),
+      };
+      
+      // Add displayName if available
+      if (firebaseUser.displayName) {
+        userData.displayName = firebaseUser.displayName;
+      }
+      
+      // Add photoURL if available
+      if (firebaseUser.photoURL) {
+        userData.photoURL = firebaseUser.photoURL;
+      }
+      
+      if (userDoc.exists()) {
+        // Update existing user document, but preserve important fields
+        const existingData = userDoc.data();
+        
+        // Preserve role and admin fields (never overwrite these)
+        if (existingData.role) userData.role = existingData.role;
+        if (existingData.isAdmin !== undefined) userData.isAdmin = existingData.isAdmin;
+        if (existingData.isSuperAdmin !== undefined) userData.isSuperAdmin = existingData.isSuperAdmin;
+        if (existingData.customClaimsSet !== undefined) userData.customClaimsSet = existingData.customClaimsSet;
+        if (existingData.promotedBy) userData.promotedBy = existingData.promotedBy;
+        if (existingData.promotedAt) userData.promotedAt = existingData.promotedAt;
+        if (existingData.createdAt) userData.createdAt = existingData.createdAt;
+        
+        await setDoc(userRef, userData, { merge: true });
+      } else {
+        // Create new user document
+        userData.createdAt = serverTimestamp();
+        userData.role = 'user'; // Default role
+        await setDoc(userRef, userData);
+      }
+    } catch (error) {
+      console.error('Error syncing user to Firestore:', error);
+      // Don't throw error - we don't want to break auth flow
+    }
+  }, []);
   
   /**
    * SECURITY: Extract custom claims from ID token
@@ -127,6 +182,9 @@ export const AuthProvider = ({ children }) => {
 
           if (firebaseUser) {
             try {
+              // Sync user data to Firestore (ensures email and displayName are up-to-date)
+              await syncUserToFirestore(firebaseUser);
+              
               // Extract custom claims from token
               const claims = await extractCustomClaims(firebaseUser);
               
@@ -173,7 +231,7 @@ export const AuthProvider = ({ children }) => {
         unsubscribe();
       }
     };
-  }, [extractCustomClaims, setupTokenRefresh, cleanupAuthState]);
+  }, [syncUserToFirestore, extractCustomClaims, setupTokenRefresh, cleanupAuthState]);
 
   /**
    * SECURITY: Sign in function with proper error handling

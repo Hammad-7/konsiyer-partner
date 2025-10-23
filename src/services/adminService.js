@@ -572,6 +572,7 @@ export const searchUsersForAdmin = async (searchTerm) => {
       const email = (userData.email || '').toLowerCase();
       const userId = doc.id.toLowerCase();
       const displayName = (userData.displayName || '').toLowerCase();
+      const name = (userData.name || '').toLowerCase();
       
       // Check if user matches search and is not already an admin
       const isAdminUser = userData.role === 'admin' || 
@@ -582,14 +583,26 @@ export const searchUsersForAdmin = async (searchTerm) => {
       if (!isAdminUser && 
           (email.includes(lowerSearchTerm) || 
            userId.includes(lowerSearchTerm) ||
-           displayName.includes(lowerSearchTerm))) {
+           displayName.includes(lowerSearchTerm) ||
+           name.includes(lowerSearchTerm))) {
+        // Get the best available display name
+        const bestDisplayName = userData.displayName || userData.name || email.split('@')[0] || 'User';
+        
         matchingUsers.push({
           id: doc.id,
           email: userData.email || 'N/A',
-          displayName: userData.displayName || 'N/A',
+          displayName: bestDisplayName !== 'N/A' ? bestDisplayName : email.split('@')[0] || 'User',
+          name: userData.name,
           createdAt: userData.createdAt
         });
       }
+    });
+    
+    // Sort by email for consistency
+    matchingUsers.sort((a, b) => {
+      const emailA = a.email || '';
+      const emailB = b.email || '';
+      return emailA.localeCompare(emailB);
     });
     
     return matchingUsers.slice(0, 10); // Limit to 10 results

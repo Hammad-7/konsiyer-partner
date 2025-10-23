@@ -946,7 +946,7 @@ def get_all_admins(req: https_fn.Request) -> https_fn.Response:
 	"""Get list of all admin users (super admin only).
 	
 	Expects: POST request with idToken in body
-	Returns: JSON array of admin users
+	Returns: JSON array of admin users with data from Firebase Auth
 	"""
 	# Handle CORS preflight
 	preflight_response = _handle_preflight(req)
@@ -995,32 +995,79 @@ def get_all_admins(req: https_fn.Request) -> https_fn.Response:
 							user_data.get("isSuperAdmin") == True)
 			
 			if is_admin_user:
-				# Convert Firestore timestamps to ISO format strings for JSON serialization
-				created_at = user_data.get("createdAt")
+				# Fetch user data from Firebase Auth to get the most accurate email and displayName
+				auth_user_data = None
+				try:
+					auth_user = admin_auth.get_user(user_id)
+					auth_user_data = {
+						"email": auth_user.email,
+						"displayName": auth_user.display_name,
+						"createdAt": auth_user.user_metadata.creation_timestamp if auth_user.user_metadata else None
+					}
+				except Exception as e:
+					logger.warning(f"Could not fetch Auth data for user {user_id}: {str(e)}")
+				
+				# Prioritize Firebase Auth data over Firestore data
+				email = (auth_user_data.get("email") if auth_user_data else None) or user_data.get("email", "N/A")
+				display_name = (auth_user_data.get("displayName") if auth_user_data else None) or user_data.get("displayName") or user_data.get("name", "N/A")
+				
+				# Handle timestamps - determine which field to use for "added" date
+				is_super = user_id == SUPER_ADMIN_UID or user_data.get("isSuperAdmin") == True
+				
+				# For superusers: use createdAt from Auth or Firestore
+				# For regular admins: use promotedAt if available, otherwise createdAt
+				if is_super:
+					added_timestamp = user_data.get("createdAt")
+					# Fallback to Auth creation time if Firestore doesn't have it
+					if not added_timestamp and auth_user_data and auth_user_data.get("createdAt"):
+						added_timestamp = auth_user_data.get("createdAt")
+				else:
+					# For admins, prefer promotedAt over createdAt
+					added_timestamp = user_data.get("promotedAt") or user_data.get("createdAt")
+				
 				last_updated = user_data.get("lastUpdated")
+				promoted_at = user_data.get("promotedAt")
 				
-				if created_at and hasattr(created_at, 'isoformat'):
-					created_at = created_at.isoformat()
-				elif created_at and hasattr(created_at, 'timestamp'):
-					created_at = created_at.timestamp() * 1000  # Convert to milliseconds
+				# Convert timestamps to milliseconds for JSON serialization
+				def convert_timestamp(ts):
+					if not ts:
+						return None
+					if hasattr(ts, 'isoformat'):
+						# Python datetime object
+						return int(ts.timestamp() * 1000)
+					elif hasattr(ts, 'timestamp'):
+						# Firestore timestamp
+						return int(ts.timestamp() * 1000)
+					elif isinstance(ts, (int, float)):
+						# Already a timestamp (possibly in seconds or milliseconds)
+						# If it's a small number, assume seconds and convert to milliseconds
+						if ts < 10000000000:  # Less than year 2286 in seconds
+							return int(ts * 1000)
+						return int(ts)
+					return None
 				
-				if last_updated and hasattr(last_updated, 'isoformat'):
-					last_updated = last_updated.isoformat()
-				elif last_updated and hasattr(last_updated, 'timestamp'):
-					last_updated = last_updated.timestamp() * 1000  # Convert to milliseconds
+				added_at = convert_timestamp(added_timestamp)
+				last_updated_ms = convert_timestamp(last_updated)
+				promoted_at_ms = convert_timestamp(promoted_at)
 				
-				admins.append({
+				admin_entry = {
 					"id": user_id,
-					"email": user_data.get("email", "N/A"),
-					"displayName": user_data.get("displayName", "N/A"),
+					"email": email,
+					"displayName": display_name,
 					"role": user_data.get("role", "admin"),
-					"isSuperAdmin": user_id == SUPER_ADMIN_UID or user_data.get("isSuperAdmin") == True,
-					"createdAt": created_at,
-					"lastUpdated": last_updated
-				})
+					"isSuperAdmin": is_super,
+					"createdAt": added_at,
+					"lastUpdated": last_updated_ms
+				}
+				
+				# Add promotedAt only for non-superusers
+				if not is_super and promoted_at_ms:
+					admin_entry["promotedAt"] = promoted_at_ms
+				
+				admins.append(admin_entry)
 
-		# Sort: super admin first
-		admins.sort(key=lambda x: (not x["isSuperAdmin"], x.get("createdAt", 0)))
+		# Sort: super admin first, then by creation/promotion date
+		admins.sort(key=lambda x: (not x["isSuperAdmin"], -(x.get("createdAt") or 0)))
 
 		return https_fn.Response(
 			json.dumps({"admins": admins, "total": len(admins)}),
@@ -1084,18 +1131,25 @@ def add_admin(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 
-		# Check if target user exists
-		db = firestore.client()
-		target_user_ref = db.collection("users").document(target_user_id)
-		target_user_doc = target_user_ref.get()
-		
-		if not target_user_doc.exists:
+		# Fetch user data from Firebase Auth
+		try:
+			auth_user = admin_auth.get_user(target_user_id)
+			user_email = auth_user.email
+			user_display_name = auth_user.display_name
+			user_created_at = auth_user.user_metadata.creation_timestamp if auth_user.user_metadata else None
+		except Exception as e:
+			logger.error(f"Failed to fetch user from Auth: {str(e)}")
 			return https_fn.Response(
-				json.dumps({"error": "Target user not found"}),
+				json.dumps({"error": "Target user not found in Firebase Auth"}),
 				status=404,
 				headers=headers
 			)
 
+		# Check if target user exists in Firestore
+		db = firestore.client()
+		target_user_ref = db.collection("users").document(target_user_id)
+		target_user_doc = target_user_ref.get()
+		
 		# Set custom claims for admin access (CRITICAL for Firestore rules)
 		try:
 			custom_claims = {
@@ -1112,15 +1166,31 @@ def add_admin(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 
-		# Update Firestore user document
-		target_user_ref.update({
+		# Prepare user data with information from Firebase Auth
+		user_update_data = {
 			"role": "admin",
 			"isAdmin": True,
 			"customClaimsSet": True,
 			"lastUpdated": firestore.SERVER_TIMESTAMP,
 			"promotedBy": uid,
-			"promotedAt": firestore.SERVER_TIMESTAMP
-		})
+			"promotedAt": firestore.SERVER_TIMESTAMP,
+			# Store email and displayName from Firebase Auth
+			"email": user_email,
+		}
+		
+		# Only add displayName if it exists
+		if user_display_name:
+			user_update_data["displayName"] = user_display_name
+		
+		# If user document doesn't exist, create it with additional fields
+		if not target_user_doc.exists:
+			logger.info(f"Creating new user document for {target_user_id}")
+			user_update_data["userId"] = target_user_id
+			user_update_data["createdAt"] = firestore.SERVER_TIMESTAMP
+			target_user_ref.set(user_update_data)
+		else:
+			# Update existing user document
+			target_user_ref.update(user_update_data)
 
 		logger.info(f"User {target_user_id} promoted to admin by super admin {uid}")
 
@@ -1129,6 +1199,8 @@ def add_admin(req: https_fn.Request) -> https_fn.Response:
 				"success": True,
 				"message": "User successfully promoted to admin. User must sign out and sign back in for changes to take effect.",
 				"userId": target_user_id,
+				"email": user_email,
+				"displayName": user_display_name,
 				"note": "Custom claims have been set - user needs to refresh their session"
 			}),
 			status=200,
@@ -1299,6 +1371,20 @@ def init_super_admin(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 		
+		# Fetch user data from Firebase Auth
+		try:
+			auth_user = admin_auth.get_user(SUPER_ADMIN_UID)
+			user_email = auth_user.email
+			user_display_name = auth_user.display_name
+			logger.info(f"Fetched super admin data from Auth: {user_email}, {user_display_name}")
+		except Exception as e:
+			logger.error(f"Failed to fetch super admin from Auth: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Super admin user not found in Firebase Auth: {str(e)}"}),
+				status=404,
+				headers=headers
+			)
+		
 		# Set custom claims for super admin
 		logger.info(f"Setting custom claims for super admin: {SUPER_ADMIN_UID}")
 		
@@ -1310,16 +1396,30 @@ def init_super_admin(req: https_fn.Request) -> https_fn.Response:
 		
 		admin_auth.set_custom_user_claims(SUPER_ADMIN_UID, custom_claims)
 		
-		# Also update Firestore for record keeping
+		# Also update Firestore for record keeping with data from Firebase Auth
 		db = firestore.client()
 		user_ref = db.collection("users").document(SUPER_ADMIN_UID)
-		user_ref.set({
+		
+		user_data = {
 			"role": "super_admin",
 			"isSuperAdmin": True,
 			"isAdmin": True,
 			"customClaimsSet": True,
-			"lastUpdated": firestore.SERVER_TIMESTAMP
-		}, merge=True)
+			"lastUpdated": firestore.SERVER_TIMESTAMP,
+			"email": user_email,
+		}
+		
+		# Only add displayName if it exists
+		if user_display_name:
+			user_data["displayName"] = user_display_name
+		
+		# Check if user doc exists to determine if we need createdAt
+		user_doc = user_ref.get()
+		if not user_doc.exists:
+			user_data["createdAt"] = firestore.SERVER_TIMESTAMP
+			user_data["userId"] = SUPER_ADMIN_UID
+		
+		user_ref.set(user_data, merge=True)
 		
 		logger.info(f"Super admin initialized successfully: {SUPER_ADMIN_UID}")
 		
@@ -1328,6 +1428,8 @@ def init_super_admin(req: https_fn.Request) -> https_fn.Response:
 				"success": True,
 				"message": "Super admin initialized successfully",
 				"userId": SUPER_ADMIN_UID,
+				"email": user_email,
+				"displayName": user_display_name,
 				"customClaims": custom_claims,
 				"note": "User must sign out and sign back in for changes to take effect"
 			}),
