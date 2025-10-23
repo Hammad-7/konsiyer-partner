@@ -21,10 +21,12 @@ import ConnectShopPage from './components/onboarding/ConnectShopPage';
 import ShopifyConnectPage from './components/onboarding/ShopifyConnectPage';
 import OtherShopConnectPage from './components/onboarding/OtherShopConnectPage';
 import IkasConnectPage from './components/onboarding/IkasConnectPage';
+import OnboardingWizard from './components/onboarding/OnboardingWizard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import UserDetails from './components/admin/UserDetails';
 import ShopDetails from './components/admin/ShopDetails';
 import IkasProcessingPipeline from './components/admin/IkasProcessingPipeline';
+import OnboardingManagement from './components/admin/OnboardingManagement';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -133,6 +135,14 @@ function AppContent() {
           } 
         />
         <Route 
+          path="/onboarding" 
+          element={
+            <ProtectedRoute>
+              <OnboardingWizard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/connect" 
           element={
             <ProtectedRoute>
@@ -178,6 +188,16 @@ function AppContent() {
             <ProtectedRoute>
               <AdminProtectedRoute>
                 <AdminDashboard />
+              </AdminProtectedRoute>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/onboarding" 
+          element={
+            <ProtectedRoute>
+              <AdminProtectedRoute>
+                <OnboardingManagement />
               </AdminProtectedRoute>
             </ProtectedRoute>
           } 

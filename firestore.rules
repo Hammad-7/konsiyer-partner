@@ -85,6 +85,39 @@ service cloud.firestore {
     }
     
     // ===================================================================
+    // ONBOARDING APPLICATIONS COLLECTION
+    // SECURITY: Each user can ONLY access their own onboarding application
+    // ===================================================================
+    match /onboarding_applications/{userId} {
+      // CRITICAL: Document ID MUST match user's UID
+      // This ensures row-level security - no user can see other users' data
+      
+      // Read: Users can ONLY read their own application, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Create: Users can ONLY create their own application
+      // SECURITY: Cannot create application for another user
+      allow create: if isOwner(userId) && 
+                       request.resource.data.userId == getUserId();
+      
+      // Update: Users can ONLY update their own application
+      // SECURITY: Cannot change userId or hijack another user's application
+      // Users can set status to 'draft', 'pending_review', or 'approved' (auto-approval)
+      // SECURITY: Users cannot set reviewedBy field (reserved for admin reviews)
+      allow update: if isOwner(userId) && 
+                       request.resource.data.userId == getUserId() &&
+                       !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['userId', 'reviewedBy']) &&
+                       // Users can set status to 'draft', 'pending_review', or 'approved'
+                       (request.resource.data.status == 'draft' || 
+                        request.resource.data.status == 'pending_review' ||
+                        request.resource.data.status == 'approved');
+      
+      // Delete: Only admins can delete applications
+      allow delete: if isAdmin();
+    }
+    
+    // ===================================================================
     // ORDERS COLLECTION
     // ===================================================================
     match /orders/{orderId} {
