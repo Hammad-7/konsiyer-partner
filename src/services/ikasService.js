@@ -209,6 +209,16 @@ export const fetchIkasProducts = async (shopName, accessToken, limit = 100) => {
             id
             name
             }
+            variants {
+            id
+            images {
+            fileName,
+            imageId,
+            isMain,
+            isVideo,
+            order
+            }
+            }
             type
             weight
           }
@@ -316,6 +326,16 @@ export const fetchIkasProduct = async (shopName, accessToken, productId) => {
             id
             name
             }
+            variants {
+            id
+            images {
+            fileName,
+            imageId,
+            isMain,
+            isVideo,
+            order
+            }
+            }
             type
             weight
           }
@@ -345,6 +365,62 @@ export const fetchIkasProduct = async (shopName, accessToken, productId) => {
     return products.length > 0 ? products[0] : null;
   } catch (error) {
     console.error('💥 Error fetching Ikas product:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch merchant information from Ikas API using GraphQL
+ * @param {string} accessToken - The OAuth access token
+ * @returns {Promise<Object>} - Merchant information
+ */
+export const fetchIkasMerchant = async (accessToken) => {
+  if (!accessToken) {
+    throw new Error('Access token is required');
+  }
+
+  try {
+    const apiUrl = 'https://api.myikas.com/api/v1/admin/graphql';
+    
+    console.log(`🔍 Fetching merchant information from Ikas GraphQL API`);
+    
+    const graphqlQuery = {
+      query: `{
+        getMerchant {
+          id
+          email
+          firstName
+          lastName
+          merchantName
+          merchantSequence
+          phoneNumber
+          storeName
+        }
+      }`
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(graphqlQuery)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Ikas API error: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch merchant from Ikas: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Successfully fetched merchant from Ikas');
+    console.log('📊 Merchant data:', result.data?.getMerchant);
+    
+    return result.data?.getMerchant || null;
+  } catch (error) {
+    console.error('💥 Error fetching Ikas merchant:', error);
     throw error;
   }
 };

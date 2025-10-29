@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Building2, CreditCard, Bell, Save } from 'lucide-react';
+import { Building2, CreditCard, Bell, Save, Loader2 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,35 +12,198 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import LoadingSpinner from './LoadingSpinner';
 
-import { mockCompanyDetails, mockPaymentSettings, mockNotificationSettings } from '@/data/mockData';
+import { 
+  getOnboardingApplication, 
+  saveOnboardingDraft,
+  submitOnboardingApplication 
+} from '@/services/onboardingService';
+import { mockNotificationSettings } from '@/data/mockData';
+import { auth } from '@/firebase';
 
 const Settings = () => {
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('company');
+  const [onboardingData, setOnboardingData] = useState(null);
 
   const companyForm = useForm({
-    defaultValues: mockCompanyDetails,
+    defaultValues: {
+      businessType: '',
+      companyName: '',
+      legalStructure: '',
+      taxId: '',
+      taxOffice: '',
+      contactEmail: '',
+      contactPhone: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: '',
+      },
+    },
   });
 
   const paymentForm = useForm({
-    defaultValues: mockPaymentSettings,
+    defaultValues: {
+      paymentMethod: 'bank_transfer',
+      bankDetails: {
+        accountHolder: '',
+        iban: '',
+        bic: '',
+        bankName: '',
+      },
+    },
   });
 
   const [notifications, setNotifications] = useState(mockNotificationSettings);
 
+  // Load onboarding data on mount
+  useEffect(() => {
+    loadOnboardingData();
+  }, []);
+
+  const loadOnboardingData = async () => {
+    try {
+      setLoading(true);
+      const data = await getOnboardingApplication();
+      
+      if (data) {
+        setOnboardingData(data);
+        
+        // Populate company form with onboarding data
+        companyForm.reset({
+          businessType: data.businessInfo?.type || '',
+          companyName: data.businessInfo?.name || '',
+          legalStructure: data.businessInfo?.legalStructure || '',
+          taxId: data.taxInfo?.taxId || '',
+          taxOffice: data.taxInfo?.taxOffice || '',
+          contactEmail: data.contactInfo?.email || auth.currentUser?.email || '',
+          contactPhone: data.contactInfo?.phone || auth.currentUser?.phoneNumber || '',
+          address: {
+            street: data.addressInfo?.street || '',
+            city: data.addressInfo?.city || '',
+            state: data.addressInfo?.state || '',
+            postalCode: data.addressInfo?.postalCode || '',
+            country: data.addressInfo?.country || '',
+          },
+        });
+
+        // Populate payment form with onboarding data
+        paymentForm.reset({
+          paymentMethod: data.paymentInfo?.method || 'bank_transfer',
+          bankDetails: {
+            accountHolder: data.paymentInfo?.bankDetails?.accountHolder || '',
+            iban: data.paymentInfo?.bankDetails?.iban || '',
+            bic: data.paymentInfo?.bankDetails?.bic || '',
+            bankName: data.paymentInfo?.bankDetails?.bankName || '',
+          },
+        });
+      } else {
+        // No onboarding data, set email from auth
+        companyForm.setValue('contactEmail', auth.currentUser?.email || '');
+      }
+    } catch (error) {
+      console.error('Error loading onboarding data:', error);
+      toast.error('Failed to load your information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveCompany = async (data) => {
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('Company details saved successfully!');
-    setSaving(false);
+    try {
+      // Prepare data in onboarding format
+      const updateData = {
+        businessInfo: {
+          type: data.businessType,
+          name: data.companyName,
+          legalStructure: data.legalStructure,
+        },
+        contactInfo: {
+          email: data.contactEmail,
+          phone: data.contactPhone,
+        },
+        addressInfo: {
+          street: data.address.street,
+          city: data.address.city,
+          state: data.address.state,
+          postalCode: data.address.postalCode,
+          country: data.address.country,
+        },
+        taxInfo: {
+          taxId: data.taxId,
+          taxOffice: data.taxOffice,
+        },
+        // Preserve existing payment info if any
+        paymentInfo: onboardingData?.paymentInfo || {
+          method: 'bank_transfer',
+          bankDetails: {},
+        },
+      };
+
+      // Submit as approved application
+      await submitOnboardingApplication(updateData);
+      
+      toast.success('Company details saved successfully!');
+      
+      // Reload data to reflect changes
+      await loadOnboardingData();
+    } catch (error) {
+      console.error('Error saving company details:', error);
+      toast.error(error.message || 'Failed to save company details');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSavePayment = async (data) => {
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('Payment settings saved successfully!');
-    setSaving(false);
+    try {
+      // Prepare complete data with existing info
+      const updateData = {
+        businessInfo: onboardingData?.businessInfo || {
+          type: companyForm.getValues('businessType'),
+          name: companyForm.getValues('companyName'),
+        },
+        contactInfo: onboardingData?.contactInfo || {
+          email: companyForm.getValues('contactEmail'),
+          phone: companyForm.getValues('contactPhone'),
+        },
+        addressInfo: onboardingData?.addressInfo || {
+          street: companyForm.getValues('address.street'),
+          city: companyForm.getValues('address.city'),
+          state: companyForm.getValues('address.state'),
+          postalCode: companyForm.getValues('address.postalCode'),
+          country: companyForm.getValues('address.country'),
+        },
+        taxInfo: onboardingData?.taxInfo || {
+          taxId: companyForm.getValues('taxId'),
+          taxOffice: companyForm.getValues('taxOffice'),
+        },
+        paymentInfo: {
+          method: data.paymentMethod,
+          bankDetails: data.bankDetails,
+        },
+      };
+
+      // Submit as approved application
+      await submitOnboardingApplication(updateData);
+      
+      toast.success('Payment settings saved successfully!');
+      
+      // Reload data to reflect changes
+      await loadOnboardingData();
+    } catch (error) {
+      console.error('Error saving payment settings:', error);
+      toast.error(error.message || 'Failed to save payment settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveNotifications = async () => {
@@ -59,6 +222,17 @@ const Settings = () => {
       },
     }));
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner size="xl" text="Loading your settings..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -111,18 +285,47 @@ const Settings = () => {
                       <h3 className="text-sm font-semibold">Basic Information</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="companyName">Company Name</Label>
+                          <Label htmlFor="businessType">Business Type</Label>
+                          <Select 
+                            value={companyForm.watch('businessType')}
+                            onValueChange={(value) => companyForm.setValue('businessType', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select business type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="individual">Individual</SelectItem>
+                              <SelectItem value="sole_proprietor">Sole Proprietor</SelectItem>
+                              <SelectItem value="partnership">Partnership</SelectItem>
+                              <SelectItem value="company">Company/Business Entity</SelectItem>
+                              <SelectItem value="corporation">Corporation</SelectItem>
+                              <SelectItem value="llc">Limited Liability Company (LLC)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Business Name *</Label>
                           <Input
                             id="companyName"
-                            {...companyForm.register('companyName')}
-                            placeholder="Your Company Name"
+                            {...companyForm.register('companyName', { required: true })}
+                            placeholder="Your Business Name"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="legalStructure">Legal Structure (Optional)</Label>
+                          <Input
+                            id="legalStructure"
+                            {...companyForm.register('legalStructure')}
+                            placeholder="e.g., GmbH, Inc., LLC"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="taxId">Tax ID</Label>
+                          <Label htmlFor="taxId">Tax ID *</Label>
                           <Input
                             id="taxId"
-                            {...companyForm.register('taxId')}
+                            {...companyForm.register('taxId', { required: true })}
                             placeholder="Tax Identification Number"
                           />
                         </div>
@@ -138,9 +341,10 @@ const Settings = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="contactPhone">Contact Phone</Label>
+                          <Label htmlFor="contactPhone">Contact Phone (Optional)</Label>
                           <Input
                             id="contactPhone"
+                            type="tel"
                             {...companyForm.register('contactPhone')}
                             placeholder="+1 234 567 8900"
                           />
@@ -152,81 +356,48 @@ const Settings = () => {
 
                     {/* Address */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold">Address</h3>
+                      <h3 className="text-sm font-semibold">Address Information</h3>
                       <div className="space-y-2">
-                        <Label htmlFor="street">Street Address</Label>
+                        <Label htmlFor="street">Street Address *</Label>
                         <Input
                           id="street"
-                          {...companyForm.register('address.street')}
+                          {...companyForm.register('address.street', { required: true })}
                           placeholder="123 Main Street"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="city">City</Label>
+                          <Label htmlFor="city">City *</Label>
                           <Input
                             id="city"
-                            {...companyForm.register('address.city')}
+                            {...companyForm.register('address.city', { required: true })}
                             placeholder="City"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="postalCode">Postal Code</Label>
+                          <Label htmlFor="state">State / Province *</Label>
+                          <Input
+                            id="state"
+                            {...companyForm.register('address.state', { required: true })}
+                            placeholder="State or Province"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="postalCode">Postal Code *</Label>
                           <Input
                             id="postalCode"
-                            {...companyForm.register('address.postalCode')}
+                            {...companyForm.register('address.postalCode', { required: true })}
                             placeholder="12345"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="country">Country</Label>
+                          <Label htmlFor="country">Country *</Label>
                           <Input
                             id="country"
-                            {...companyForm.register('address.country')}
+                            {...companyForm.register('address.country', { required: true })}
                             placeholder="Country"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Bank Details */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold">Bank Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="accountHolder">Account Holder</Label>
-                          <Input
-                            id="accountHolder"
-                            {...companyForm.register('bankDetails.accountHolder')}
-                            placeholder="Account Holder Name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="bankName">Bank Name</Label>
-                          <Input
-                            id="bankName"
-                            {...companyForm.register('bankDetails.bankName')}
-                            placeholder="Bank Name"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="iban">IBAN</Label>
-                          <Input
-                            id="iban"
-                            {...companyForm.register('bankDetails.iban')}
-                            placeholder="DE89 3704 0044 0532 0130 00"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="bic">BIC/SWIFT</Label>
-                          <Input
-                            id="bic"
-                            {...companyForm.register('bankDetails.bic')}
-                            placeholder="COBADEFFXXX"
                           />
                         </div>
                       </div>
@@ -234,8 +405,17 @@ const Settings = () => {
 
                     <div className="flex justify-end">
                       <Button type="submit" disabled={saving}>
-                        <Save className="h-4 w-4 mr-2" />
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -249,83 +429,94 @@ const Settings = () => {
                 <CardHeader>
                   <CardTitle>Payment Settings</CardTitle>
                   <CardDescription>
-                    Configure your payment preferences and payout settings.
+                    Configure your payment preferences and bank details.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={paymentForm.handleSubmit(handleSavePayment)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold">Payment Method</h3>
                       <div className="space-y-2">
-                        <Label htmlFor="preferredMethod">Preferred Payment Method</Label>
-                        <Select defaultValue={paymentForm.watch('preferredMethod')}>
+                        <Label htmlFor="paymentMethod">Preferred Payment Method</Label>
+                        <Select 
+                          value={paymentForm.watch('paymentMethod')}
+                          onValueChange={(value) => paymentForm.setValue('paymentMethod', value)}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="paypal">PayPal</SelectItem>
-                            <SelectItem value="stripe">Credit Card (Stripe)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="currency">Currency</Label>
-                        <Select defaultValue={paymentForm.watch('currency')}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="EUR">EUR (€)</SelectItem>
-                            <SelectItem value="USD">USD ($)</SelectItem>
-                            <SelectItem value="GBP">GBP (£)</SelectItem>
+                            <SelectItem value="credit_card">Credit Card</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="minimumPayoutAmount">Minimum Payout Amount</Label>
-                        <Input
-                          id="minimumPayoutAmount"
-                          type="number"
-                          {...paymentForm.register('minimumPayoutAmount')}
-                          placeholder="100.00"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="paymentSchedule">Payment Schedule</Label>
-                        <Select defaultValue={paymentForm.watch('paymentSchedule')}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                    <Separator />
 
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <Label htmlFor="autoWithdraw" className="text-base">Auto-withdraw</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically withdraw funds when minimum is reached
-                        </p>
+                    {/* Bank Details - only show for bank transfer */}
+                    {paymentForm.watch('paymentMethod') === 'bank_transfer' && (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold">Bank Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="accountHolder">Account Holder *</Label>
+                            <Input
+                              id="accountHolder"
+                              {...paymentForm.register('bankDetails.accountHolder', { 
+                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
+                              })}
+                              placeholder="Account Holder Name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bankName">Bank Name *</Label>
+                            <Input
+                              id="bankName"
+                              {...paymentForm.register('bankDetails.bankName', { 
+                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
+                              })}
+                              placeholder="Bank Name"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="iban">IBAN *</Label>
+                            <Input
+                              id="iban"
+                              {...paymentForm.register('bankDetails.iban', { 
+                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
+                              })}
+                              placeholder="DE89 3704 0044 0532 0130 00"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bic">BIC/SWIFT (Optional)</Label>
+                            <Input
+                              id="bic"
+                              {...paymentForm.register('bankDetails.bic')}
+                              placeholder="COBADEFFXXX"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <Switch
-                        id="autoWithdraw"
-                        checked={paymentForm.watch('autoWithdraw')}
-                        onCheckedChange={(checked) => paymentForm.setValue('autoWithdraw', checked)}
-                      />
-                    </div>
+                    )}
 
                     <div className="flex justify-end">
                       <Button type="submit" disabled={saving}>
-                        <Save className="h-4 w-4 mr-2" />
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -383,8 +574,17 @@ const Settings = () => {
 
                   <div className="flex justify-end">
                     <Button onClick={handleSaveNotifications} disabled={saving}>
-                      <Save className="h-4 w-4 mr-2" />
-                      {saving ? 'Saving...' : 'Save Changes'}
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardContent>

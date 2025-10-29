@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserDetails } from '../../services/adminService';
+import { getOnboardingApplicationByUserId, formatBusinessType, formatPaymentMethod } from '../../services/onboardingService';
 import LoadingSpinner from '../LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -11,6 +12,7 @@ const UserDetails = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [onboardingData, setOnboardingData] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -21,8 +23,15 @@ const UserDetails = () => {
     try {
       setLoading(true);
       setError(null);
-      const userData = await getUserDetails(userId);
+      
+      // Fetch user data and onboarding application in parallel
+      const [userData, onboardingApp] = await Promise.all([
+        getUserDetails(userId),
+        getOnboardingApplicationByUserId(userId)
+      ]);
+      
       setUser(userData);
+      setOnboardingData(onboardingApp);
     } catch (error) {
       console.error('Error loading user details:', error);
       setError(error.message);
@@ -127,7 +136,7 @@ const UserDetails = () => {
                   </div>
                   <div className="flex justify-between py-3 border-b">
                     <dt className="text-gray-600 font-medium">Display Name</dt>
-                    <dd className="text-gray-900">{user.displayName || 'N/A'}</dd>
+                    <dd className="text-gray-900">{user.displayName || onboardingData?.businessInfo?.name || 'N/A'}</dd>
                   </div>
                   <div className="flex justify-between py-3 border-b">
                     <dt className="text-gray-600 font-medium">Role</dt>
@@ -161,16 +170,147 @@ const UserDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Additional User Data */}
-            {user.metadata && (
+            {/* Business Information from Onboarding */}
+            {onboardingData && (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Business Information
+                      <Badge variant={
+                        onboardingData.status === 'approved' ? 'default' :
+                        onboardingData.status === 'pending_review' ? 'secondary' :
+                        onboardingData.status === 'rejected' ? 'destructive' : 'outline'
+                      }>
+                        {onboardingData.status?.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-4">
+                      <div className="flex justify-between py-3 border-b">
+                        <dt className="text-gray-600 font-medium">Business Type</dt>
+                        <dd className="text-gray-900">{formatBusinessType(onboardingData.businessInfo?.type) || 'N/A'}</dd>
+                      </div>
+                      <div className="flex justify-between py-3 border-b">
+                        <dt className="text-gray-600 font-medium">Business Name</dt>
+                        <dd className="text-gray-900 font-semibold">{onboardingData.businessInfo?.name || 'N/A'}</dd>
+                      </div>
+                      {onboardingData.businessInfo?.legalStructure && (
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">Legal Structure</dt>
+                          <dd className="text-gray-900">{onboardingData.businessInfo.legalStructure}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                {/* Address Information */}
+                {onboardingData.addressInfo && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Address Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-4">
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">Street Address</dt>
+                          <dd className="text-gray-900">{onboardingData.addressInfo.street || 'N/A'}</dd>
+                        </div>
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">City</dt>
+                          <dd className="text-gray-900">{onboardingData.addressInfo.city || 'N/A'}</dd>
+                        </div>
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">State / Province</dt>
+                          <dd className="text-gray-900">{onboardingData.addressInfo.state || 'N/A'}</dd>
+                        </div>
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">Postal Code</dt>
+                          <dd className="text-gray-900">{onboardingData.addressInfo.postalCode || 'N/A'}</dd>
+                        </div>
+                        <div className="flex justify-between py-3">
+                          <dt className="text-gray-600 font-medium">Country</dt>
+                          <dd className="text-gray-900">{onboardingData.addressInfo.country || 'N/A'}</dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Tax Information */}
+                {onboardingData.taxInfo && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tax Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-4">
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">Tax ID</dt>
+                          <dd className="text-gray-900 font-mono">{onboardingData.taxInfo.taxId || 'N/A'}</dd>
+                        </div>
+                        {onboardingData.taxInfo.taxOffice && (
+                          <div className="flex justify-between py-3">
+                            <dt className="text-gray-600 font-medium">Tax Office</dt>
+                            <dd className="text-gray-900">{onboardingData.taxInfo.taxOffice}</dd>
+                          </div>
+                        )}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Payment Information */}
+                {onboardingData.paymentInfo && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-4">
+                        <div className="flex justify-between py-3 border-b">
+                          <dt className="text-gray-600 font-medium">Payment Method</dt>
+                          <dd className="text-gray-900">{formatPaymentMethod(onboardingData.paymentInfo.method) || 'N/A'}</dd>
+                        </div>
+                        {onboardingData.paymentInfo.bankDetails && (
+                          <>
+                            <div className="flex justify-between py-3 border-b">
+                              <dt className="text-gray-600 font-medium">Bank Name</dt>
+                              <dd className="text-gray-900">{onboardingData.paymentInfo.bankDetails.bankName || 'N/A'}</dd>
+                            </div>
+                            <div className="flex justify-between py-3 border-b">
+                              <dt className="text-gray-600 font-medium">IBAN</dt>
+                              <dd className="text-gray-900 font-mono">{onboardingData.paymentInfo.bankDetails.iban || 'N/A'}</dd>
+                            </div>
+                            <div className="flex justify-between py-3">
+                              <dt className="text-gray-600 font-medium">Account Holder</dt>
+                              <dd className="text-gray-900">{onboardingData.paymentInfo.bankDetails.accountHolder || 'N/A'}</dd>
+                            </div>
+                          </>
+                        )}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {/* Show message if no onboarding data */}
+            {!onboardingData && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Additional Information</CardTitle>
+                  <CardTitle>Onboarding Information</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <pre className="text-sm bg-gray-50 p-4 rounded overflow-auto">
-                    {JSON.stringify(user.metadata, null, 2)}
-                  </pre>
+                  <div className="text-center py-8 text-gray-500">
+                    <svg className="h-12 w-12 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p>No onboarding application found</p>
+                    <p className="text-sm mt-2">User has not completed the onboarding process yet</p>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -178,6 +318,51 @@ const UserDetails = () => {
 
           {/* Shops Sidebar */}
           <div className="lg:col-span-1">
+            {/* Onboarding Status Card */}
+            {onboardingData && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Onboarding Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Status</span>
+                      <Badge variant={
+                        onboardingData.status === 'approved' ? 'default' :
+                        onboardingData.status === 'pending_review' ? 'secondary' :
+                        onboardingData.status === 'rejected' ? 'destructive' : 'outline'
+                      }>
+                        {onboardingData.status?.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Submitted</span>
+                      <span className="text-sm">{formatDate(onboardingData.submittedAt) || 'N/A'}</span>
+                    </div>
+                    {onboardingData.autoApproved && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Auto-Approved</span>
+                        <Badge variant="outline" className="text-xs">Yes</Badge>
+                      </div>
+                    )}
+                    {onboardingData.reviewedAt && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reviewed</span>
+                        <span className="text-sm">{formatDate(onboardingData.reviewedAt)}</span>
+                      </div>
+                    )}
+                    {onboardingData.rejectionReason && (
+                      <div className="pt-3 border-t">
+                        <span className="text-gray-600 text-sm font-medium">Rejection Reason:</span>
+                        <p className="text-sm text-red-600 mt-1">{onboardingData.rejectionReason}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Connected Shops ({user.shops?.length || 0})</CardTitle>
@@ -244,6 +429,18 @@ const UserDetails = () => {
                       {user.shops?.filter(s => s.shopType === 'shopify').length || 0}
                     </span>
                   </div>
+                  {onboardingData && (
+                    <>
+                      <div className="border-t pt-3 mt-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Onboarding</span>
+                          <Badge variant={onboardingData.status === 'approved' ? 'default' : 'outline'} className="text-xs">
+                            {onboardingData.status === 'approved' ? 'Complete' : 'Incomplete'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

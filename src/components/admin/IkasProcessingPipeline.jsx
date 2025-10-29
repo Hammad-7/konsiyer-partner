@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getShopDetails } from '../../services/adminService';
-import { fetchIkasProducts, validateAndRefreshToken } from '../../services/ikasService';
+import { fetchIkasProducts, fetchIkasMerchant, validateAndRefreshToken } from '../../services/ikasService';
 import LoadingSpinner from '../LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -96,8 +96,14 @@ const IkasProcessingPipeline = () => {
       const validToken = await validateAndRefreshToken(userId, shopId, shop);
       console.log('✅ Token validated successfully');
       
-      // Step 2: Fetch products from Ikas API using validated token
-      console.log('📋 Step 2: Fetching products from Ikas API...');
+      // Step 2: Fetch merchant information from Ikas API
+      console.log('📋 Step 2: Fetching merchant information from Ikas API...');
+      const merchantData = await fetchIkasMerchant(validToken);
+      console.log('✅ Merchant information fetched successfully');
+      console.log('🏪 Merchant Info:', merchantData);
+      
+      // Step 3: Fetch products from Ikas API using validated token
+      console.log('📋 Step 3: Fetching products from Ikas API...');
       const data = await fetchIkasProducts(shop.shopName, validToken);
       console.log('✅ Products fetched successfully');
       
