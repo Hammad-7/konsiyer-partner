@@ -645,7 +645,8 @@ const resources = {
         poweredBy: 'Destekleyen',
         copyRight: '© 2024 Konsiyer Enterprise. Tüm hakları saklıdır.',
         merchant: 'Satıcı',
-        tryAgain: 'Tekrar Dene'
+        tryAgain: 'Tekrar Dene',
+        needHelp: 'Yardıma mı ihtiyacınız var?',
       }
     }
   },
@@ -1290,7 +1291,8 @@ const resources = {
         poweredBy: 'Powered by',
         copyRight: '© 2024 Konsiyer Enterprise. All rights reserved.',
         merchant: 'Merchant',
-        tryAgain: 'Try Again'
+        tryAgain: 'Try Again',
+        needHelp: 'Need help?',
       }
     }
   }
