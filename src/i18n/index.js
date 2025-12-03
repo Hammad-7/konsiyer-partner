@@ -163,7 +163,10 @@ const resources = {
         ikasStep2: 'Erişim token\'ınızı güvenli bir şekilde alın',
         ikasStep3: 'Mağazanızı panonuza bağlayın',
         verifyingShopStatus: 'Mağaza durumunuz doğrulanıyor...',
-        checkingAccountStatus: 'Hesap durumunuz kontrol ediliyor...'
+        checkingAccountStatus: 'Hesap durumunuz kontrol ediliyor...',
+        videoTutorial: 'Video Eğitimi',
+        helpfulGuide: 'Yardımcı Rehber',
+        watchTutorial: 'Ikas mağazanızı nasıl bağlayacağınızı öğrenmek için bu kısa eğitimi izleyin'
       },
       
       // Invoices
@@ -812,7 +815,10 @@ const resources = {
         ikasStep2: 'Fetch your access token securely',
         ikasStep3: 'Connect your store to your dashboard',
         verifyingShopStatus: 'Verifying your shop status...',
-        checkingAccountStatus: 'Checking your account status...'
+        checkingAccountStatus: 'Checking your account status...',
+        videoTutorial: 'Video Tutorial',
+        helpfulGuide: 'Helpful Guide',
+        watchTutorial: 'Watch this quick tutorial to learn how to connect your Ikas store'
       },
       
       // Invoices

@@ -120,6 +120,38 @@ const IkasConnectPage = () => {
             </p>
           </div>
 
+          {/* Video Tutorial */}
+          <div className="mb-8">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <svg className="h-5 w-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {t('shop.videoTutorial')}
+                </h2>
+                <span className="text-xs font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                  {t('shop.helpfulGuide')}
+                </span>
+              </div>
+              
+              <div className="relative w-full rounded-lg overflow-hidden shadow-lg" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full"
+                  src="https://www.youtube.com/embed/-oYhQ_eNSY8?rel=0&modestbranding=1&showinfo=0"
+                  title="Ikas Connection Tutorial"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+              
+              <p className="mt-4 text-sm text-gray-600 text-center">
+                {t('shop.watchTutorial')}
+              </p>
+            </div>
+          </div>
+
           {/* Connection Form */}
           <form onSubmit={handleConnect} className="space-y-6">
             
