@@ -140,11 +140,6 @@ const IkasConnectPage = () => {
                     validationErrors.shopUrl ? 'border-red-300' : 'border-gray-300'
                   } ${connecting ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 />
-                {connecting && (
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <LoadingSpinner size="sm" />
-                  </div>
-                )}
               </div>
               
               {/* Validation Error */}
@@ -243,8 +238,8 @@ const IkasConnectPage = () => {
             >
               {connecting ? (
                 <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  {t('shop.connecting')}
+                  <LoadingSpinner size="sm" className="mr-2" text={t('shop.connecting')}/>
+                  {/* {t('shop.connecting')} */}
                 </>
               ) : (
                 <>
