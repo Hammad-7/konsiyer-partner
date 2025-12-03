@@ -11,7 +11,7 @@ const IkasConnectPage = () => {
   const { user } = useAuth();
   const { connectIkas, connecting } = useShop();
   
-  const [shopName, setShopName] = useState('');
+  const [shopUrl, setShopUrl] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
   const [error, setError] = useState('');
@@ -30,11 +30,11 @@ const IkasConnectPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleShopNameChange = (e) => {
+  const handleShopUrlChange = (e) => {
     const value = e.target.value;
-    setShopName(value);
+    setShopUrl(value);
     setError('');
-    validateField('shopName', value);
+    validateField('shopUrl', value);
   };
 
   const handleClientIdChange = (e) => {
@@ -55,11 +55,11 @@ const IkasConnectPage = () => {
     e.preventDefault();
     
     // Validate all fields
-    const isShopNameValid = validateField('shopName', shopName);
+    const isShopUrlValid = validateField('shopUrl', shopUrl);
     const isClientIdValid = validateField('clientId', clientId);
     const isClientSecretValid = validateField('clientSecret', clientSecret);
 
-    if (!isShopNameValid || !isClientIdValid || !isClientSecretValid) {
+    if (!isShopUrlValid || !isClientIdValid || !isClientSecretValid) {
       setError(t('shop.pleaseEnterAllFields'));
       return;
     }
@@ -68,7 +68,7 @@ const IkasConnectPage = () => {
       setError('');
       
       const result = await connectIkas(
-        shopName.trim(),
+        shopUrl.trim(),
         clientId.trim(),
         clientSecret.trim()
       );
@@ -88,7 +88,7 @@ const IkasConnectPage = () => {
     navigate('/connect');
   };
 
-  const isFormValid = shopName.trim() && clientId.trim() && clientSecret.trim() && Object.keys(validationErrors).length === 0;
+  const isFormValid = shopUrl.trim() && clientId.trim() && clientSecret.trim() && Object.keys(validationErrors).length === 0;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-indigo-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -123,21 +123,21 @@ const IkasConnectPage = () => {
           {/* Connection Form */}
           <form onSubmit={handleConnect} className="space-y-6">
             
-            {/* Shop Name Input */}
+            {/* Shop URL Input */}
             <div>
-              <label htmlFor="shopName" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('shop.shopNameLabel')} <span className="text-red-500">*</span>
+              <label htmlFor="shopUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('shop.shopUrlLabel') || 'Shop URL'} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
                   type="text"
-                  id="shopName"
-                  value={shopName}
-                  onChange={handleShopNameChange}
-                  placeholder={t('shop.shopNamePlaceholder')}
+                  id="shopUrl"
+                  value={shopUrl}
+                  onChange={handleShopUrlChange}
+                  placeholder={t('shop.shopUrlPlaceholder') || 'e.g., yourstorename.myikas.com'}
                   disabled={connecting}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
-                    validationErrors.shopName ? 'border-red-300' : 'border-gray-300'
+                    validationErrors.shopUrl ? 'border-red-300' : 'border-gray-300'
                   } ${connecting ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 />
                 {connecting && (
@@ -148,18 +148,18 @@ const IkasConnectPage = () => {
               </div>
               
               {/* Validation Error */}
-              {validationErrors.shopName && (
+              {validationErrors.shopUrl && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {validationErrors.shopName}
+                  {validationErrors.shopUrl}
                 </p>
               )}
               
               {/* Help Text */}
               <p className="mt-2 text-sm text-gray-500">
-                {t('shop.shopNameHelp')}
+                {t('shop.shopUrlHelp') || 'Enter your full Ikas shop URL (e.g., yourstorename.myikas.com or yourstorename.ikas.shop)'}
               </p>
             </div>
 

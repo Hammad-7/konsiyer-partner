@@ -266,9 +266,9 @@ export const ShopProvider = ({ children }) => {
   };
 
   // Connect to Ikas using the backend function
-  const connectIkas = async (shopName, clientId, clientSecret) => {
-    if (!shopName || !clientId || !clientSecret) {
-      throw new Error('Shop name, client ID, and client secret are required');
+  const connectIkas = async (shopUrl, clientId, clientSecret) => {
+    if (!shopUrl || !clientId || !clientSecret) {
+      throw new Error('Shop URL, client ID, and client secret are required');
     }
 
     try {
@@ -288,7 +288,7 @@ export const ShopProvider = ({ children }) => {
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          shop_name: shopName,
+          shop_url: shopUrl,
           client_id: clientId,
           client_secret: clientSecret,
           idToken

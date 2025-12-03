@@ -669,15 +669,52 @@ def ikas_connect(req: https_fn.Request) -> https_fn.Response:
 			return https_fn.Response(json.dumps({"error": "Invalid JSON"}), status=400, headers=headers)
 
 		# Extract parameters
-		shop_name = body.get("shop_name", "").strip()
+		shop_url = body.get("shop_url", "").strip()
 		client_id = body.get("client_id", "").strip()
 		client_secret = body.get("client_secret", "").strip()
 		id_token = body.get("idToken") or body.get("id_token")
 
 		# Validate required fields
-		if not shop_name or not client_id or not client_secret:
+		if not shop_url or not client_id or not client_secret:
 			return https_fn.Response(
-				json.dumps({"error": "Missing required fields: shop_name, client_id, client_secret"}),
+				json.dumps({"error": "Missing required fields: shop_url, client_id, client_secret"}),
+				status=400,
+				headers=headers
+			)
+
+		# Extract shop name from the URL
+		# Expected formats: https://shopname.myikas.com or shopname.myikas.com
+		try:
+			# Parse the URL
+			parsed_url = urllib.parse.urlparse(shop_url if "://" in shop_url else f"https://{shop_url}")
+			hostname = parsed_url.hostname or parsed_url.path.split("/")[0]
+			
+			# Extract shop name from hostname (e.g., "shopname" from "shopname.myikas.com")
+			if ".myikas.com" in hostname:
+				shop_name = hostname.replace(".myikas.com", "")
+			elif ".ikas.shop" in hostname:
+				shop_name = hostname.replace(".ikas.shop", "")
+			else:
+				return https_fn.Response(
+					json.dumps({"error": "Invalid Ikas shop URL. Expected format: shopname.myikas.com or shopname.ikas.shop"}),
+					status=400,
+					headers=headers
+				)
+			
+			# Validate shop name is not empty and contains valid characters
+			if not shop_name or not re.match(r"^[a-z0-9][a-z0-9\-]*$", shop_name.lower()):
+				return https_fn.Response(
+					json.dumps({"error": "Invalid shop name extracted from URL"}),
+					status=400,
+					headers=headers
+				)
+			
+			logger.info(f"Extracted shop name '{shop_name}' from URL: {shop_url}")
+			
+		except Exception as e:
+			logger.error(f"Failed to parse shop URL: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Invalid shop URL format: {str(e)}"}),
 				status=400,
 				headers=headers
 			)
