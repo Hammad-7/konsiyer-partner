@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
+import { useTranslations } from '../hooks/useTranslations';
 import LoadingSpinner from './LoadingSpinner';
 
 /**
@@ -9,6 +10,7 @@ import LoadingSpinner from './LoadingSpinner';
  * Redirects to /connect if no verified shop, /dashboard if shop is verified
  */
 const ConditionalRedirect = ({ children }) => {
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { hasConnectedShops, loading: shopLoading, connectedShops, checkUserHasVerifiedShop } = useShop();
   const [doubleChecking, setDoubleChecking] = useState(false);
@@ -56,7 +58,7 @@ const ConditionalRedirect = ({ children }) => {
   if (shopLoading || doubleChecking || finalDecision === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-        <LoadingSpinner size="xl" text={doubleChecking ? "Verifying your shop status..." : "Checking your account status..."} />
+        <LoadingSpinner size="xl" text={doubleChecking ? t('shop.verifyingShopStatus') : t('shop.checkingAccountStatus')} />
       </div>
     );
   }

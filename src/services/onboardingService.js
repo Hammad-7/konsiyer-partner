@@ -126,7 +126,7 @@ export const submitOnboardingApplication = async (completeData) => {
       ...completeData,
       userId: user.uid,
       status: 'approved', // Auto-approve immediately
-      currentStep: 5, // Completed all steps
+      currentStep: 3, // Completed all steps (3-step flow)
       submittedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       autoApproved: true, // Flag to indicate this was auto-approved
@@ -183,11 +183,12 @@ export const hasPendingOnboarding = async () => {
  */
 export const validateOnboardingData = (data) => {
   // Business Info validation
-  if (!data.businessInfo?.type) {
-    return 'Business type is required';
+  // Require brand / business name (type and legal structure removed)
+  if (!data.businessInfo?.name && !data.businessInfo?.brandName) {
+    return 'Brand name is required';
   }
-  if (!data.businessInfo?.name || data.businessInfo.name.trim().length < 2) {
-    return 'Business/client name is required (minimum 2 characters)';
+  if ((data.businessInfo?.name || data.businessInfo?.brandName) && (data.businessInfo.name || data.businessInfo.brandName).trim().length < 2) {
+    return 'Brand name is required (minimum 2 characters)';
   }
 
   // Address validation
@@ -207,9 +208,13 @@ export const validateOnboardingData = (data) => {
     return 'Country is required';
   }
 
-  // Tax Info validation
-  if (!data.taxInfo?.taxId || data.taxInfo.taxId.trim().length < 5) {
+  // Tax Info validation: Tax ID must be 10-11 digits
+  const taxId = (data.taxInfo?.taxId || '').replace(/\s/g, '');
+  if (!taxId) {
     return 'Tax ID is required';
+  }
+  if (!/^[0-9]{10,11}$/.test(taxId)) {
+    return 'Tax ID must be 10–11 digits';
   }
 
   // Payment Info validation
@@ -217,18 +222,7 @@ export const validateOnboardingData = (data) => {
     return 'Payment method is required';
   }
   
-  if (data.paymentInfo.method === 'bank_transfer') {
-    if (!data.paymentInfo.bankDetails?.bankName) {
-      return 'Bank name is required for bank transfer';
-    }
-    if (!data.paymentInfo.bankDetails?.iban || 
-        data.paymentInfo.bankDetails.iban.trim().length < 15) {
-      return 'Valid IBAN is required for bank transfer';
-    }
-    if (!data.paymentInfo.bankDetails?.accountHolder) {
-      return 'Account holder name is required for bank transfer';
-    }
-  }
+  // Bank transfer option removed in redesigned onboarding; no bank validation needed
 
   return null; // Valid
 };

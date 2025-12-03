@@ -133,7 +133,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
             <div className="hidden md:block max-w-xs">
               <Select defaultValue={connectedShops[0]?.id}>
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select shop" />
+                  <SelectValue placeholder={t('nav.selectShop')} />
                 </SelectTrigger>
                 <SelectContent>
                   {connectedShops.map((shop) => (
@@ -164,7 +164,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                     <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Notifications</TooltipContent>
+                <TooltipContent>{t('nav.notifications')}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
@@ -195,7 +195,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('common.account')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 
                 {/* Only show profile/settings for fully authenticated users */}
@@ -203,11 +203,11 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                   <>
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
                       <User className="mr-2 h-4 w-4" />
-                      Profile Settings
+                      {t('common.profile')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
                       <SettingsIcon className="mr-2 h-4 w-4" />
-                      Account Settings
+                      {t('common.settings')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -218,7 +218,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                   <>
                     <DropdownMenuItem onClick={() => navigate('/admin')} className="text-indigo-600 font-medium">
                       <Shield className="mr-2 h-4 w-4" />
-                      Admin Panel
+                      {t('nav.admin')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -226,7 +226,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

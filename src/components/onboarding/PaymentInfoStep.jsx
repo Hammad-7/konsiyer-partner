@@ -1,47 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { useTranslations } from '../../hooks/useTranslations';
 
 const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
+  const { t } = useTranslations();
   const [formData, setFormData] = useState({
-    method: data?.method || '',
-    bankDetails: data?.bankDetails || {
-      bankName: '',
-      iban: '',
-      accountHolder: ''
-    },
+    method: data?.method || 'credit_card',
     cardToken: data?.cardToken || '' // Will be used later with payment provider
   });
 
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Validate form
   useEffect(() => {
     const newErrors = {};
     
     if (!formData.method) {
-      newErrors.method = 'Payment method is required';
+      newErrors.method = t('onboarding.paymentMethodRequired');
     }
     
-    if (formData.method === 'bank_transfer') {
-      if (!formData.bankDetails.bankName || formData.bankDetails.bankName.trim().length < 2) {
-        newErrors.bankName = 'Bank name is required';
-      }
-      
-      if (!formData.bankDetails.iban || formData.bankDetails.iban.trim().length < 15) {
-        newErrors.iban = 'Valid IBAN is required (minimum 15 characters)';
-      }
-      
-      // Basic IBAN format validation (alphanumeric)
-      const ibanPattern = /^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/i;
-      if (formData.bankDetails.iban && !ibanPattern.test(formData.bankDetails.iban.replace(/\s/g, ''))) {
-        newErrors.iban = 'Invalid IBAN format';
-      }
-      
-      if (!formData.bankDetails.accountHolder || formData.bankDetails.accountHolder.trim().length < 2) {
-        newErrors.accountHolder = 'Account holder name is required';
-      }
-    }
+    // No bank transfer option in redesigned flow; only ensure a method is selected
 
     setErrors(newErrors);
     
@@ -82,10 +62,10 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Payment Information
+          {t('onboarding.paymentInfoTitle')}
         </h2>
         <p className="text-gray-600">
-          Choose your preferred payment method
+          {t('onboarding.choosePreferredPayment')}
         </p>
       </div>
 
@@ -93,37 +73,11 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
         {/* Payment Method Selection */}
         <div>
           <Label className="text-sm font-medium text-gray-700 mb-3 block">
-            Payment Method <span className="text-red-500">*</span>
+            {t('onboarding.paymentMethod')} <span className="text-red-500">*</span>
           </Label>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Bank Transfer Option */}
-            <div
-              onClick={() => handleChange('method', 'bank_transfer')}
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.method === 'bank_transfer'
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-            >
-              <div className="flex items-center">
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  formData.method === 'bank_transfer'
-                    ? 'border-indigo-500'
-                    : 'border-gray-300'
-                }`}>
-                  {formData.method === 'bank_transfer' && (
-                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Bank Transfer</p>
-                  <p className="text-xs text-gray-500">Pay via bank transfer</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Credit Card Option */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Only credit card option is available for now */}
             <div
               onClick={() => handleChange('method', 'credit_card')}
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
@@ -143,83 +97,19 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
                   )}
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Credit Card</p>
-                  <p className="text-xs text-gray-500">Pay with credit card</p>
+                  <p className="font-medium text-gray-900">{t('onboarding.creditCard')}</p>
+                  <p className="text-xs text-gray-500">{t('onboarding.creditCardDescription')}</p>
                 </div>
               </div>
             </div>
           </div>
           
-          {errors.method && (
+          {touched.method && errors.method && (
             <p className="mt-2 text-sm text-red-600">{errors.method}</p>
           )}
         </div>
 
-        {/* Bank Transfer Details */}
-        {formData.method === 'bank_transfer' && (
-          <div className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-900">Bank Account Details</h3>
-            
-            {/* Bank Name */}
-            <div>
-              <Label htmlFor="bankName" className="text-sm font-medium text-gray-700">
-                Bank Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="bankName"
-                type="text"
-                value={formData.bankDetails.bankName}
-                onChange={(e) => handleBankDetailChange('bankName', e.target.value)}
-                placeholder="e.g., İş Bankası, Garanti BBVA"
-                className="mt-1"
-              />
-              {errors.bankName && (
-                <p className="mt-1 text-sm text-red-600">{errors.bankName}</p>
-              )}
-            </div>
-
-            {/* IBAN */}
-            <div>
-              <Label htmlFor="iban" className="text-sm font-medium text-gray-700">
-                IBAN <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="iban"
-                type="text"
-                value={formData.bankDetails.iban}
-                onChange={(e) => handleBankDetailChange('iban', e.target.value.toUpperCase())}
-                onBlur={(e) => handleBankDetailChange('iban', formatIBAN(e.target.value))}
-                placeholder="TR33 0006 1005 1978 6457 8413 26"
-                className="mt-1 font-mono"
-                maxLength={34}
-              />
-              {errors.iban && (
-                <p className="mt-1 text-sm text-red-600">{errors.iban}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                International Bank Account Number
-              </p>
-            </div>
-
-            {/* Account Holder */}
-            <div>
-              <Label htmlFor="accountHolder" className="text-sm font-medium text-gray-700">
-                Account Holder Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="accountHolder"
-                type="text"
-                value={formData.bankDetails.accountHolder}
-                onChange={(e) => handleBankDetailChange('accountHolder', e.target.value)}
-                placeholder="Full name as it appears on the account"
-                className="mt-1"
-              />
-              {errors.accountHolder && (
-                <p className="mt-1 text-sm text-red-600">{errors.accountHolder}</p>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Bank transfer removed — no bank details to collect in this flow */}
 
         {/* Credit Card - Demo Only */}
         {formData.method === 'credit_card' && (
@@ -230,13 +120,13 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
               </svg>
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">
-                  Demo Mode - Payment Integration Coming Soon
+                  {t('onboarding.demoModeTitle')}
                 </h3>
                 <p className="text-sm text-yellow-800 mb-3">
-                  Credit card payment integration is currently under development. You can select this option now, but actual payment processing will be available in a future update.
+                  {t('onboarding.demoModeDescription')}
                 </p>
                 <p className="text-sm text-yellow-800 font-medium">
-                  For now, you can proceed with this selection and we'll notify you when the integration is ready. You can also update your payment method later in your account settings.
+                  {t('onboarding.demoModeNote')}
                 </p>
               </div>
             </div>
@@ -245,7 +135,7 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
             <div className="mt-4 space-y-3 opacity-60 pointer-events-none">
               <Input
                 type="text"
-                placeholder="Card Number (Demo - Not Functional)"
+                placeholder={t('onboarding.cardNumberDemo')}
                 className="font-mono"
                 disabled
               />
@@ -273,8 +163,8 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">You can update payment information later</p>
-            <p>Your payment information can be updated anytime in your account settings after completing the onboarding process.</p>
+            <p className="font-medium mb-1">{t('onboarding.paymentInfoUpdateTitle')}</p>
+            <p>{t('onboarding.paymentInfoUpdateDescription')}</p>
           </div>
         </div>
       </div>
@@ -286,8 +176,8 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
           <div className="text-sm text-green-800">
-            <p className="font-medium mb-1">Bank Details Security</p>
-            <p>Your bank account information is encrypted and stored securely. We never store credit card numbers directly - all card processing uses secure tokenization.</p>
+            <p className="font-medium mb-1">{t('onboarding.paymentSecurityTitle')}</p>
+            <p>{t('onboarding.paymentSecurityDescription')}</p>
           </div>
         </div>
       </div>

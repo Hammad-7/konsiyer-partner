@@ -1,146 +1,190 @@
 import { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select } from '../ui/select';
+import { useTranslations } from '../../hooks/useTranslations';
 
-const BusinessInfoStep = ({ data, onUpdate, onValidationChange }) => {
-  const [formData, setFormData] = useState({
-    type: data?.type || '',
-    name: data?.name || '',
-    legalStructure: data?.legalStructure || ''
+const BusinessInfoStep = ({
+  businessData = {},
+  addressData = {},
+  taxData = {},
+  onUpdateBusiness,
+  onUpdateAddress,
+  onUpdateTax,
+  onValidationChange
+}) => {
+  const { t } = useTranslations();
+  const [business, setBusiness] = useState({
+    brandName: businessData?.brandName || businessData?.name || ''
+  });
+
+  const [address, setAddress] = useState({
+    street: addressData?.street || '',
+    city: addressData?.city || '',
+    state: addressData?.state || '',
+    postalCode: addressData?.postalCode || '',
+    country: addressData?.country || ''
+  });
+
+  const [tax, setTax] = useState({
+    taxId: taxData?.taxId || '',
+    taxOffice: taxData?.taxOffice || ''
   });
 
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
-  // Business types
-  const businessTypes = [
-    { value: 'individual', label: 'Individual' },
-    { value: 'company', label: 'Company/Business Entity' },
-    { value: 'sole_proprietor', label: 'Sole Proprietor' },
-    { value: 'partnership', label: 'Partnership' },
-    { value: 'corporation', label: 'Corporation' },
-    { value: 'llc', label: 'Limited Liability Company (LLC)' }
-  ];
-
-  // Validate form
+  // Validation rules for combined step
   useEffect(() => {
     const newErrors = {};
-    
-    if (!formData.type) {
-      newErrors.type = 'Business type is required';
+
+    // Brand name required
+    if (!business.brandName || business.brandName.trim().length < 2) {
+      newErrors.brandName = t('onboarding.brandNameRequired');
     }
-    
-    if (!formData.name || formData.name.trim().length < 2) {
-      newErrors.name = 'Name is required (minimum 2 characters)';
+
+    // Address validations
+    if (!address.street || address.street.trim().length < 5) {
+      newErrors.street = t('onboarding.streetRequired');
+    }
+    if (!address.city || address.city.trim().length < 2) {
+      newErrors.city = t('onboarding.cityRequired');
+    }
+    if (!address.state || address.state.trim().length < 2) {
+      newErrors.state = t('onboarding.stateRequired');
+    }
+    if (!address.postalCode || address.postalCode.trim().length < 3) {
+      newErrors.postalCode = t('onboarding.postalCodeRequired');
+    }
+    if (!address.country) {
+      newErrors.country = t('onboarding.countryRequired');
+    }
+
+    // Tax ID: required and must be 10-11 digits
+    const cleanedTaxId = (tax.taxId || '').replace(/\s/g, '');
+    if (!cleanedTaxId) {
+      newErrors.taxId = t('onboarding.taxIdRequired');
+    } else if (!/^[0-9]{10,11}$/.test(cleanedTaxId)) {
+      newErrors.taxId = t('onboarding.taxIdInvalid');
     }
 
     setErrors(newErrors);
-    
-    // Notify parent of validation status
+
     const isValid = Object.keys(newErrors).length === 0;
     onValidationChange(isValid);
-    
-    // Auto-save to parent
-    if (isValid) {
-      onUpdate(formData);
-    }
-  }, [formData]); // Remove onUpdate and onValidationChange from dependencies
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // If valid, push updates upstream
+    if (isValid) {
+      if (onUpdateBusiness) onUpdateBusiness({ name: business.brandName, brandName: business.brandName });
+      if (onUpdateAddress) onUpdateAddress(address);
+      if (onUpdateTax) onUpdateTax({ taxId: cleanedTaxId, taxOffice: tax.taxOffice });
+    }
+  }, [business, address, tax, t, onValidationChange, onUpdateBusiness, onUpdateAddress, onUpdateTax]);
+
+  const handleBusinessChange = (field, value) => {
+    setBusiness(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressChange = (field, value) => {
+    setAddress(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleTaxChange = (field, value) => {
+    setTax(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Business Information
-        </h2>
-        <p className="text-gray-600">
-          Tell us about your business entity
-        </p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('onboarding.businessInfoTitle')}</h2>
+        <p className="text-gray-600">{t('onboarding.combineBusinessDetails')}</p>
       </div>
 
+      {/* Business Section */}
       <div className="space-y-4">
-        {/* Business Type */}
+        <h3 className="text-lg font-semibold">{t('onboarding.businessInfoSection')}</h3>
         <div>
-          <Label htmlFor="businessType" className="text-sm font-medium text-gray-700">
-            Business Type <span className="text-red-500">*</span>
-          </Label>
-          <select
-            id="businessType"
-            value={formData.type}
-            onChange={(e) => handleChange('type', e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">Select business type</option>
-            {businessTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          {errors.type && (
-            <p className="mt-1 text-sm text-red-600">{errors.type}</p>
-          )}
-        </div>
-
-        {/* Business/Client Name */}
-        <div>
-          <Label htmlFor="businessName" className="text-sm font-medium text-gray-700">
-            {formData.type === 'individual' ? 'Full Name' : 'Company Name'} <span className="text-red-500">*</span>
+          <Label htmlFor="brandName" className="text-sm font-medium text-gray-700">
+            {t('onboarding.brandNameLabel')} <span className="text-red-500">*</span>
           </Label>
           <Input
-            id="businessName"
+            id="brandName"
             type="text"
-            value={formData.name}
-            onChange={(e) => handleChange('name', e.target.value)}
-            placeholder={formData.type === 'individual' ? 'John Doe' : 'Acme Corporation'}
+            value={business.brandName}
+            onChange={(e) => handleBusinessChange('brandName', e.target.value)}
+            placeholder={t('onboarding.brandNamePlaceholder')}
             className="mt-1"
+            onBlur={() => handleBlur('brandName')}
           />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            {formData.type === 'individual' 
-              ? 'Enter your full legal name as it appears on official documents'
-              : 'Enter your company\'s legal name'}
-          </p>
+          {touched.brandName && errors.brandName && <p className="mt-1 text-sm text-red-600">{errors.brandName}</p>}
         </div>
-
-        {/* Legal Structure (optional for companies) */}
-        {formData.type !== 'individual' && (
-          <div>
-            <Label htmlFor="legalStructure" className="text-sm font-medium text-gray-700">
-              Legal Structure (Optional)
-            </Label>
-            <Input
-              id="legalStructure"
-              type="text"
-              value={formData.legalStructure}
-              onChange={(e) => handleChange('legalStructure', e.target.value)}
-              placeholder="e.g., Limited Liability Company, Private Limited"
-              className="mt-1"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Additional details about your business structure
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Information Notice */}
+      {/* Address Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">{t('onboarding.businessAddress')}</h3>
+
+        <div>
+          <Label htmlFor="street" className="text-sm font-medium text-gray-700">{t('onboarding.streetAddress')} <span className="text-red-500">*</span></Label>
+          <Input id="street" type="text" value={address.street} onChange={(e) => handleAddressChange('street', e.target.value)} className="mt-1" placeholder={t('onboarding.streetPlaceholder')} onBlur={() => handleBlur('street')} />
+          {touched.street && errors.street && <p className="mt-1 text-sm text-red-600">{errors.street}</p>}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="city" className="text-sm font-medium text-gray-700">{t('onboarding.city')} <span className="text-red-500">*</span></Label>
+            <Input id="city" type="text" value={address.city} onChange={(e) => handleAddressChange('city', e.target.value)} className="mt-1" onBlur={() => handleBlur('city')} />
+            {touched.city && errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
+          </div>
+          <div>
+            <Label htmlFor="state" className="text-sm font-medium text-gray-700">{t('onboarding.stateProvince')} <span className="text-red-500">*</span></Label>
+            <Input id="state" type="text" value={address.state} onChange={(e) => handleAddressChange('state', e.target.value)} className="mt-1" onBlur={() => handleBlur('state')} />
+            {touched.state && errors.state && <p className="mt-1 text-sm text-red-600">{errors.state}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="postalCode" className="text-sm font-medium text-gray-700">{t('onboarding.postalZipCode')} <span className="text-red-500">*</span></Label>
+            <Input id="postalCode" type="text" value={address.postalCode} onChange={(e) => handleAddressChange('postalCode', e.target.value)} className="mt-1" onBlur={() => handleBlur('postalCode')} />
+            {touched.postalCode && errors.postalCode && <p className="mt-1 text-sm text-red-600">{errors.postalCode}</p>}
+          </div>
+          <div>
+            <Label htmlFor="country" className="text-sm font-medium text-gray-700">{t('onboarding.country')} <span className="text-red-500">*</span></Label>
+            <Input id="country" type="text" value={address.country} onChange={(e) => handleAddressChange('country', e.target.value)} className="mt-1" onBlur={() => handleBlur('country')} />
+            {touched.country && errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Tax Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">{t('onboarding.taxInfo')}</h3>
+
+        <div>
+          <Label htmlFor="taxId" className="text-sm font-medium text-gray-700">{t('onboarding.taxIdLabel')} <span className="text-red-500">*</span></Label>
+          <Input id="taxId" type="text" value={tax.taxId} onChange={(e) => handleTaxChange('taxId', e.target.value)} className="mt-1 font-mono" maxLength={11} placeholder={t('onboarding.taxIdPlaceholder')} onBlur={() => handleBlur('taxId')} />
+          {touched.taxId && errors.taxId && <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>}
+          <p className="mt-1 text-xs text-gray-500">{t('onboarding.taxIdHelp')}</p>
+        </div>
+
+        <div>
+          <Label htmlFor="taxOffice" className="text-sm font-medium text-gray-700">{t('onboarding.taxOfficeName')} <span className="text-gray-400">({t('onboarding.taxOfficeOptional')})</span></Label>
+          <Input id="taxOffice" type="text" value={tax.taxOffice} onChange={(e) => handleTaxChange('taxOffice', e.target.value)} className="mt-1" placeholder={t('onboarding.taxOfficePlaceholder')} />
+        </div>
+      </div>
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex">
           <svg className="h-5 w-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Why we need this information</p>
-            <p>This information is required for generating accurate invoices and ensuring compliance with tax regulations. Your data is securely stored and only accessible by you and authorized administrators.</p>
+            <p className="font-medium mb-1">{t('onboarding.whyWeNeedThis')}</p>
+            <p>{t('onboarding.whyWeNeedThisDescription')}</p>
           </div>
         </div>
       </div>

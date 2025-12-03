@@ -9,7 +9,8 @@ import {
   Settings, 
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -18,11 +19,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Invoices', href: '/invoices', icon: FileText },
-  { name: 'Payments', href: '/payments', icon: CreditCard },
-  { name: 'Shops', href: '/shops', icon: Store },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, disabled: false },
+  { name: 'Invoices', href: '/invoices', icon: FileText, disabled: true },
+  { name: 'Payments', href: '/payments', icon: CreditCard, disabled: true },
+  { name: 'Shops', href: '/shops', icon: Store, disabled: true },
+  { name: 'Settings', href: '/settings', icon: Settings, disabled: false },
 ];
 
 export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
@@ -102,6 +103,35 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
               const isActive = location.pathname === item.href || 
                              (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
               const Icon = item.icon;
+
+              // If the item is disabled, show a tooltip with "Coming soon" and prevent navigation
+              if (item.disabled) {
+                return (
+                  <TooltipProvider key={item.name}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50',
+                            'text-gray-400'
+                          )}
+                        >
+                          <Icon className="h-5 w-5 flex-shrink-0" />
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.name}
+                              <Lock className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        Coming soon
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              }
 
               return (
                 <TooltipProvider key={item.name}>
@@ -194,6 +224,25 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                                  (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
                   const Icon = item.icon;
 
+                  // If the item is disabled, show it greyed out and non-clickable
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.name}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50',
+                          'text-gray-400'
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="flex items-center gap-2">
+                          {item.name}
+                          <Lock className="h-3 w-3" />
+                        </span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={item.name}
@@ -261,6 +310,19 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
             const isActive = location.pathname === item.href ||
                            (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
             const Icon = item.icon;
+
+            // If the item is disabled, show it greyed out and non-clickable
+            if (item.disabled) {
+              return (
+                <div
+                  key={item.name}
+                  className="flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed text-gray-400"
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs font-medium">{item.name}</span>
+                </div>
+              );
+            }
 
             return (
               <Link

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslations } from '../hooks/useTranslations';
 import { toast } from 'sonner';
 import { 
   Search, 
@@ -40,6 +41,7 @@ import { format } from 'date-fns';
 
 const Invoices = () => {
   const navigate = useNavigate();
+  const { t } = useTranslations();
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoices, setSelectedInvoices] = useState([]);
@@ -124,14 +126,14 @@ const Invoices = () => {
     toast.promise(
       simulatePayment(invoiceId),
       {
-        loading: 'Processing payment...',
+        loading: t('invoices.processing'),
         success: (result) => {
           if (result.success) {
-            return 'Payment completed successfully!';
+            return t('invoices.paymentSuccess');
           }
           throw new Error(result.error);
         },
-        error: 'Payment failed',
+        error: t('invoices.paymentFailed'),
       }
     );
   };
@@ -143,16 +145,16 @@ const Invoices = () => {
     toast.promise(
       generateInvoicePDF(invoice),
       {
-        loading: 'Generating PDF...',
-        success: 'Invoice downloaded successfully!',
-        error: 'Failed to download invoice',
+        loading: t('invoices.downloading'),
+        success: t('dashboard.downloadSuccess'),
+        error: t('dashboard.downloadError'),
       }
     );
   };
 
   const handleBulkAction = async (action) => {
     if (selectedInvoices.length === 0) {
-      toast.error('Please select at least one invoice');
+      toast.error(t('invoices.selectAtLeastOne'));
       return;
     }
 
@@ -163,9 +165,9 @@ const Invoices = () => {
           return generateInvoicePDF(invoice);
         })),
         {
-          loading: `Downloading ${selectedInvoices.length} invoices...`,
-          success: 'All invoices downloaded successfully!',
-          error: 'Failed to download invoices',
+          loading: `${t('invoices.downloading')} ${selectedInvoices.length} ${t('invoices.title').toLowerCase()}...`,
+          success: t('invoices.allDownloaded'),
+          error: t('invoices.downloadFailed'),
         }
       );
       setSelectedInvoices([]);
@@ -173,9 +175,9 @@ const Invoices = () => {
       toast.promise(
         Promise.all(selectedInvoices.map(id => simulatePayment(id))),
         {
-          loading: `Processing ${selectedInvoices.length} payments...`,
-          success: 'All payments completed successfully!',
-          error: 'Failed to process payments',
+          loading: `${t('invoices.processing')} ${selectedInvoices.length} ${t('invoices.payments')}...`,
+          success: t('invoices.allPaymentsCompleted'),
+          error: t('invoices.paymentsFailed'),
         }
       );
       setSelectedInvoices([]);
@@ -189,9 +191,9 @@ const Invoices = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Invoices</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('invoices.title')}</h1>
           <p className="text-gray-600">
-            Manage and track all your invoices in one place.
+            {t('invoices.description')}
           </p>
         </motion.div>
 
@@ -204,7 +206,7 @@ const Invoices = () => {
         >
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Invoices</CardDescription>
+              <CardDescription>{t('invoices.totalInvoices')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{totals.all}</p>
@@ -212,7 +214,7 @@ const Invoices = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Pending</CardDescription>
+              <CardDescription>{t('invoices.pending')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-yellow-600">{totals.pending}</p>
@@ -223,7 +225,7 @@ const Invoices = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Paid</CardDescription>
+              <CardDescription>{t('invoices.paid')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-green-600">{totals.paid}</p>
@@ -234,7 +236,7 @@ const Invoices = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Revenue</CardDescription>
+              <CardDescription>{t('invoices.totalRevenue')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
@@ -254,8 +256,8 @@ const Invoices = () => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle>Invoice List</CardTitle>
-                  <CardDescription>View and manage all your invoices</CardDescription>
+                  <CardTitle>{t('invoices.invoiceList')}</CardTitle>
+                  <CardDescription>{t('invoices.description')}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedInvoices.length > 0 && (
@@ -266,14 +268,14 @@ const Invoices = () => {
                         onClick={() => handleBulkAction('download')}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Download ({selectedInvoices.length})
+                        {t('invoices.download')} ({selectedInvoices.length})
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => handleBulkAction('pay')}
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Pay All
+                        {t('invoices.payAll')}
                       </Button>
                     </>
                   )}
@@ -286,7 +288,7 @@ const Invoices = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search invoices..."
+                    placeholder={t('invoices.search')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
@@ -294,7 +296,7 @@ const Invoices = () => {
                 </div>
                 <Button variant="outline">
                   <Filter className="h-4 w-4 mr-2" />
-                  Filters
+                  {t('invoices.filter')}
                 </Button>
               </div>
 
@@ -302,13 +304,13 @@ const Invoices = () => {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="all">
-                    All ({totals.all})
+                    {t('invoices.all')} ({totals.all})
                   </TabsTrigger>
                   <TabsTrigger value="pending">
-                    Pending ({totals.pending})
+                    {t('invoices.pending')} ({totals.pending})
                   </TabsTrigger>
                   <TabsTrigger value="paid">
-                    Paid ({totals.paid})
+                    {t('invoices.paid')} ({totals.paid})
                   </TabsTrigger>
                 </TabsList>
 
@@ -327,21 +329,21 @@ const Invoices = () => {
                               )}
                             </button>
                           </TableHead>
-                          <TableHead>Invoice #</TableHead>
-                          <TableHead>Shop</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead>{t('invoices.invoiceNumber')}</TableHead>
+                          <TableHead>{t('invoices.shop')}</TableHead>
+                          <TableHead>{t('invoices.description')}</TableHead>
+                          <TableHead>{t('invoices.date')}</TableHead>
+                          <TableHead>{t('invoices.dueDate')}</TableHead>
+                          <TableHead>{t('invoices.amount')}</TableHead>
+                          <TableHead>{t('invoices.status')}</TableHead>
+                          <TableHead className="text-right">{t('invoices.actions')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredInvoices.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                              No invoices found
+                              {t('invoices.noInvoices')}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -375,18 +377,18 @@ const Invoices = () => {
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => handleViewInvoice(invoice.id)}>
                                       <Eye className="h-4 w-4 mr-2" />
-                                      View Details
+                                      {t('invoices.viewDetails')}
                                     </DropdownMenuItem>
                                     {invoice.status === 'pending' && (
                                       <DropdownMenuItem onClick={() => handlePayInvoice(invoice.id)}>
                                         <CreditCard className="h-4 w-4 mr-2" />
-                                        Pay Now
+                                        {t('invoices.payNow')}
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleDownloadInvoice(invoice.id)}>
                                       <Download className="h-4 w-4 mr-2" />
-                                      Download PDF
+                                      {t('invoices.downloadPdf')}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>

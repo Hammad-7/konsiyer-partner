@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
+import { useTranslations } from '../hooks/useTranslations';
 import { fetchAffiliateStatsWithRetry } from '../services/affiliateService';
 import { 
   mockKPIs, 
@@ -40,6 +41,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { hasConnectedShops, connectedShops, loading: shopLoading, finalizeShopifyConnection } = useShop();
   const navigate = useNavigate();
+  const { t } = useTranslations();
   const [finalizing, setFinalizing] = useState(false);
   const [finalizationError, setFinalizationError] = useState('');
   const [affiliateStats, setAffiliateStats] = useState(null);
@@ -119,9 +121,9 @@ const Dashboard = () => {
     toast.promise(
       new Promise((resolve) => setTimeout(resolve, 1000)),
       {
-        loading: 'Generating PDF...',
-        success: 'Invoice downloaded successfully!',
-        error: 'Failed to download invoice',
+        loading: t('invoices.downloading'),
+        success: t('dashboard.downloadSuccess'),
+        error: t('dashboard.downloadError'),
       }
     );
   };
@@ -132,7 +134,7 @@ const Dashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
         <LoadingSpinner 
           size="xl" 
-          text={finalizing ? "Finalizing your shop connection..." : "Loading your dashboard..."} 
+          text={finalizing ? t('dashboard.finalizingConnection') : t('common.loading')} 
         />
       </div>
     );
@@ -149,7 +151,7 @@ const Dashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <CardTitle>Connection Error</CardTitle>
+            <CardTitle>{t('dashboard.connectionFailed')}</CardTitle>
             <CardDescription>{finalizationError}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -160,7 +162,7 @@ const Dashboard = () => {
                 navigate('/connect');
               }}
             >
-              Try Again
+              {t('common.tryAgain')}
             </Button>
           </CardContent>
         </Card>
@@ -181,10 +183,10 @@ const Dashboard = () => {
             className="mb-8"
           >
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back, {user?.displayName || 'Merchant'}! 👋
+              {t('dashboard.welcomeBack')}, {user?.displayName || t('common.merchant')}! 👋
             </h1>
             <p className="text-gray-600">
-              Here's what's happening with your business today.
+              {t('dashboard.todayOverview')}
             </p>
           </motion.div>
 
@@ -196,43 +198,43 @@ const Dashboard = () => {
               <MotionContainer className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <MotionItem>
                   <KPICard
-                    title="Total Attributed Sales"
+                    title={t('dashboard.totalAttributedSales')}
                     value={totalAttributedSales}
                     currency={currency}
                     icon={TrendingUp}
-                    description="Real-time sales data from your affiliate program"
+                    description={t('dashboard.affiliateStatsDescription')}
                     loading={statsLoading}
-                    trend={{ direction: 'up', value: '+12.5%', label: 'from last month' }}
+                    trend={{ direction: 'up', value: '+12.5%', label: t('dashboard.fromLastMonth') }}
                   />
                 </MotionItem>
                 <MotionItem>
                   <KPICard
-                    title="This Month Sales"
+                    title={t('dashboard.thisMonthSales')}
                     value={mockKPIs.thisMonthSales}
                     currency="EUR"
                     icon={DollarSign}
-                    description="Total sales for the current month"
-                    trend={{ direction: 'up', value: '+8.2%', label: 'from last month' }}
+                    description={t('dashboard.thisMonthSalesDescription')}
+                    trend={{ direction: 'up', value: '+8.2%', label: t('dashboard.fromLastMonth') }}
                   />
                 </MotionItem>
                 <MotionItem>
                   <KPICard
-                    title="Pending Amount"
+                    title={t('dashboard.pendingAmount')}
                     value={getTotalPendingAmount()}
                     currency="EUR"
                     icon={FileText}
-                    description="Total amount in pending invoices"
-                    trend={{ direction: 'neutral', value: '3 invoices', label: 'pending' }}
+                    description={t('dashboard.pendingAmountDescription')}
+                    trend={{ direction: 'neutral', value: '3 ' + t('invoices.title').toLowerCase(), label: t('invoices.pending').toLowerCase() }}
                   />
                 </MotionItem>
                 <MotionItem>
                   <KPICard
-                    title="Amount Paid"
+                    title={t('dashboard.amountPaid')}
                     value={getTotalPaidAmount()}
                     currency="EUR"
                     icon={CreditCard}
-                    description="Total amount received from paid invoices"
-                    trend={{ direction: 'up', value: '+15.3%', label: 'from last month' }}
+                    description={t('dashboard.amountPaidDescription')}
+                    trend={{ direction: 'up', value: '+15.3%', label: t('dashboard.fromLastMonth') }}
                   />
                 </MotionItem>
               </MotionContainer>
@@ -243,7 +245,7 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <RevenueChart data={mockChartData} title="Revenue Overview" />
+                <RevenueChart data={mockChartData} title={t('dashboard.revenueOverview')} />
               </motion.div>
 
               {/* Recent Invoices */}
@@ -255,10 +257,10 @@ const Dashboard = () => {
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>Recent Invoices</CardTitle>
+                      <CardTitle>{t('dashboard.recentInvoices')}</CardTitle>
                       <Button variant="ghost" size="sm" asChild>
                         <Link to="/invoices">
-                          View All
+                          {t('dashboard.viewAll')}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>
@@ -289,27 +291,27 @@ const Dashboard = () => {
               >
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
+                    <CardTitle className="text-lg">{t('dashboard.quickActions')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button className="w-full justify-start" variant="outline">
                       <Plus className="mr-2 h-4 w-4" />
-                      New Payment Link
+                      {t('dashboard.newPaymentLink')}
                     </Button>
                     <Button className="w-full justify-start" variant="outline">
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Invoice
+                      {t('dashboard.uploadInvoice')}
                     </Button>
                     <Button className="w-full justify-start" variant="outline" asChild>
                       <Link to="/invoices">
                         <FileText className="mr-2 h-4 w-4" />
-                        View All Invoices
+                        {t('dashboard.viewAllInvoices')}
                       </Link>
                     </Button>
                     <Button className="w-full justify-start" variant="outline" asChild>
                       <Link to="/settings">
                         <CreditCard className="mr-2 h-4 w-4" />
-                        Payment Settings
+                        {t('dashboard.paymentSettings')}
                       </Link>
                     </Button>
                   </CardContent>
@@ -324,7 +326,7 @@ const Dashboard = () => {
               >
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Recent Activity</CardTitle>
+                    <CardTitle className="text-lg">{t('dashboard.recentActivity')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -361,18 +363,18 @@ const Dashboard = () => {
               >
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Payment Methods</CardTitle>
+                    <CardTitle className="text-lg">{t('dashboard.paymentMethods')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">🏦</div>
                         <div>
-                          <p className="text-sm font-medium">Bank Transfer</p>
+                          <p className="text-sm font-medium">{t('settings.bankTransfer')}</p>
                           <p className="text-xs text-muted-foreground">IBAN: DE89...0130 00</p>
                         </div>
                       </div>
-                      <Badge variant="success">Default</Badge>
+                      <Badge variant="success">{t('dashboard.default')}</Badge>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-3">
@@ -384,7 +386,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <Button variant="link" className="w-full" asChild>
-                      <Link to="/settings">Manage Payment Methods</Link>
+                      <Link to="/settings">{t('dashboard.managePaymentMethods')}</Link>
                     </Button>
                   </CardContent>
                 </Card>

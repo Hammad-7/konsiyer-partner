@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslations } from '../../hooks/useTranslations';
 import {
   getOnboardingApplication,
   saveOnboardingDraft,
@@ -9,14 +10,13 @@ import {
 } from '../../services/onboardingService';
 import LoadingSpinner from '../LoadingSpinner';
 import BusinessInfoStep from './BusinessInfoStep';
-import AddressInfoStep from './AddressInfoStep';
-import TaxInfoStep from './TaxInfoStep';
 import PaymentInfoStep from './PaymentInfoStep';
 import ReviewSubmitStep from './ReviewSubmitStep';
 
 const OnboardingWizard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslations();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -37,20 +37,16 @@ const OnboardingWizard = () => {
   const [stepValidity, setStepValidity] = useState({
     1: false,
     2: false,
-    3: false,
-    4: false,
-    5: true // Review step is always valid
+    3: true // Review step is always valid
   });
 
-  const totalSteps = 5;
+  const totalSteps = 3;
 
-  // Steps configuration
+  // Steps configuration (combined first step)
   const steps = [
-    { number: 1, title: 'Business Info', icon: '🏢' },
-    { number: 2, title: 'Address', icon: '📍' },
-    { number: 3, title: 'Tax Info', icon: '📄' },
-    { number: 4, title: 'Payment', icon: '💳' },
-    { number: 5, title: 'Review', icon: '✓' }
+    { number: 1, title: t('onboarding.businessInfo'), icon: '🏢' },
+    { number: 2, title: t('onboarding.paymentInfo'), icon: '💳' },
+    { number: 3, title: t('onboarding.review'), icon: '✓' }
   ];
 
   // Load existing application on mount
@@ -87,7 +83,7 @@ const OnboardingWizard = () => {
         }
       } catch (err) {
         console.error('Error loading application:', err);
-        setError('Failed to load your application. Please try again.');
+        setError(t('onboarding.errorLoadingApplication'));
       } finally {
         setLoading(false);
       }
@@ -145,7 +141,7 @@ const OnboardingWizard = () => {
   // Navigate to next step
   const handleNext = async () => {
     if (!stepValidity[currentStep]) {
-      setError('Please complete all required fields before proceeding.');
+      setError(t('onboarding.completeRequiredFields'));
       return;
     }
     
@@ -185,7 +181,7 @@ const OnboardingWizard = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Error submitting application:', err);
-      setError(err.message || 'Failed to submit application. Please try again.');
+      setError(err.message || t('onboarding.errorSubmittingApplication'));
     } finally {
       setSubmitting(false);
     }
@@ -197,40 +193,28 @@ const OnboardingWizard = () => {
       case 1:
         return (
           <BusinessInfoStep
-            data={formData.businessInfo}
-            onUpdate={(data) => handleStepUpdate('businessInfo', data)}
+            businessData={formData.businessInfo}
+            addressData={formData.addressInfo}
+            taxData={formData.taxInfo}
+            onUpdateBusiness={(data) => handleStepUpdate('businessInfo', data)}
+            onUpdateAddress={(data) => handleStepUpdate('addressInfo', data)}
+            onUpdateTax={(data) => handleStepUpdate('taxInfo', data)}
             onValidationChange={(isValid) => handleValidationChange(1, isValid)}
           />
         );
       case 2:
         return (
-          <AddressInfoStep
-            data={formData.addressInfo}
-            onUpdate={(data) => handleStepUpdate('addressInfo', data)}
+          <PaymentInfoStep
+            data={formData.paymentInfo}
+            onUpdate={(data) => handleStepUpdate('paymentInfo', data)}
             onValidationChange={(isValid) => handleValidationChange(2, isValid)}
           />
         );
       case 3:
         return (
-          <TaxInfoStep
-            data={formData.taxInfo}
-            onUpdate={(data) => handleStepUpdate('taxInfo', data)}
-            onValidationChange={(isValid) => handleValidationChange(3, isValid)}
-          />
-        );
-      case 4:
-        return (
-          <PaymentInfoStep
-            data={formData.paymentInfo}
-            onUpdate={(data) => handleStepUpdate('paymentInfo', data)}
-            onValidationChange={(isValid) => handleValidationChange(4, isValid)}
-          />
-        );
-      case 5:
-        return (
           <ReviewSubmitStep
             data={formData}
-            onValidationChange={(isValid) => handleValidationChange(5, isValid)}
+            onValidationChange={(isValid) => handleValidationChange(3, isValid)}
           />
         );
       default:
@@ -242,7 +226,7 @@ const OnboardingWizard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-        <LoadingSpinner size="xl" text="Loading your application..." />
+        <LoadingSpinner size="xl" text={t('onboarding.loadingApplication')} />
       </div>
     );
   }
@@ -260,10 +244,10 @@ const OnboardingWizard = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Shop Onboarding
+            {t('onboarding.title')}
           </h1>
           <p className="text-gray-600">
-            Complete your profile to start connecting shops
+            {t('onboarding.subtitle')}
           </p>
         </div>
 
@@ -310,7 +294,7 @@ const OnboardingWizard = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Saving draft...
+              {t('onboarding.savingDraft')}
             </div>
           )}
 
@@ -342,11 +326,11 @@ const OnboardingWizard = () => {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              ← Previous
+              ← {t('onboarding.back')}
             </button>
 
             <div className="text-sm text-gray-500">
-              Step {currentStep} of {totalSteps}
+              {t('onboarding.step')} {currentStep} {t('onboarding.of')} {totalSteps}
             </div>
 
             {currentStep < totalSteps ? (
@@ -359,7 +343,7 @@ const OnboardingWizard = () => {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                Next →
+                {t('onboarding.next')} →
               </button>
             ) : (
               <button
@@ -377,11 +361,11 @@ const OnboardingWizard = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Saving...
+                    {t('onboarding.submitting')}
                   </>
                 ) : (
                   <>
-                    Continue to Shop Connection →
+                    {t('onboarding.continueToShopConnect')} →
                   </>
                 )}
               </button>
@@ -391,7 +375,7 @@ const OnboardingWizard = () => {
 
         {/* Help Text */}
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Your progress is automatically saved. You can return anytime to continue.</p>
+          <p>{t('onboarding.autoSaveMessage')}</p>
         </div>
       </div>
     </div>

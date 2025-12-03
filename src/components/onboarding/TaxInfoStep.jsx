@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { useTranslations } from '../../hooks/useTranslations';
 
 const TaxInfoStep = ({ data, onUpdate, onValidationChange }) => {
+  const { t } = useTranslations();
   const [formData, setFormData] = useState({
     taxId: data?.taxId || '',
     taxOffice: data?.taxOffice || ''
   });
 
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Validate form
   useEffect(() => {
     const newErrors = {};
     
     if (!formData.taxId || formData.taxId.trim().length < 5) {
-      newErrors.taxId = 'Tax ID is required (minimum 5 characters)';
+      newErrors.taxId = t('onboarding.taxIdRequired');
     }
     
     // Tax ID format validation (adjust based on your country)
@@ -45,6 +48,10 @@ const TaxInfoStep = ({ data, onUpdate, onValidationChange }) => {
     }));
   };
 
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -70,8 +77,9 @@ const TaxInfoStep = ({ data, onUpdate, onValidationChange }) => {
             placeholder="1234567890"
             className="mt-1"
             maxLength={11}
+            onBlur={() => handleBlur('taxId')}
           />
-          {errors.taxId && (
+          {touched.taxId && errors.taxId && (
             <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>
           )}
           <p className="mt-1 text-xs text-gray-500">

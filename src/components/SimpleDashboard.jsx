@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
+import { useTranslations } from '../hooks/useTranslations';
 import LoadingSpinner from './LoadingSpinner';
 
 const SimpleDashboard = () => {
+  const { t } = useTranslations();
   const { user } = useAuth();
   const { hasConnectedShops, connectedShops, loading: shopLoading, finalizeShopifyConnection } = useShop();
   const navigate = useNavigate();
@@ -54,7 +56,7 @@ const SimpleDashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
         <LoadingSpinner 
           size="xl" 
-          text={finalizing ? "Finalizing your shop connection..." : "Loading your dashboard..."} 
+          text={finalizing ? t('common.finalizingShopConnection') : t('common.loadingDashboard')} 
         />
       </div>
     );
@@ -71,7 +73,7 @@ const SimpleDashboard = () => {
             </svg>
           </div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            Connection Error
+            {t('common.connectionError')}
           </h2>
           <p className="text-gray-600 mb-6">
             {finalizationError}
@@ -83,7 +85,7 @@ const SimpleDashboard = () => {
             }}
             className="w-full bg-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-indigo-700 transition-colors duration-200"
           >
-            Try Again
+            {t('common.tryAgain')}
           </button>
         </div>
       </div>

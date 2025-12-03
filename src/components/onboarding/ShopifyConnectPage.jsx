@@ -35,7 +35,7 @@ const ShopifyConnectPage = () => {
     e.preventDefault();
     
     if (!shopDomain.trim()) {
-      setError('Please enter your shop domain');
+      setError(t('shop.pleaseEnterShopDomain'));
       return;
     }
 
@@ -91,10 +91,10 @@ const ShopifyConnectPage = () => {
                 <img src={'/icons/shopify_glyph.svg'} alt="Shopify" className="h-20 w-20" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Connect Shopify Store
+              {t('shop.connectShopifyStore')}
             </h1>
             <p className="text-gray-600">
-              Enter your Shopify store information to get started
+              {t('shop.shopifyStoreInfo')}
             </p>
           </div>
 
@@ -104,7 +104,7 @@ const ShopifyConnectPage = () => {
             {/* Shop Domain Input */}
             <div>
               <label htmlFor="shopDomain" className="block text-sm font-medium text-gray-700 mb-2">
-                Shop Domain
+                {t('shop.shopDomain')}
               </label>
               <div className="relative">
                 <input
@@ -137,7 +137,7 @@ const ShopifyConnectPage = () => {
               
               {/* Help Text */}
               <p className="mt-2 text-sm text-gray-500">
-                Example: mystore.myshopify.com or just "mystore"
+                {t('shop.shopDomainExample')}
               </p>
             </div>
 
@@ -180,20 +180,20 @@ const ShopifyConnectPage = () => {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="bg-green-50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-green-800 mb-2">
-                What happens next?
+                {t('shop.whatHappensNext')}
               </h3>
               <ul className="text-sm text-green-700 space-y-1">
                 <li className="flex items-start">
                   <span className="mr-2">1.</span>
-                  <span>You'll be redirected to Shopify to authorize the connection</span>
+                  <span>{t('shop.shopifyStep1')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">2.</span>
-                  <span>Grant permissions to access your store data</span>
+                  <span>{t('shop.shopifyStep2')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">3.</span>
-                  <span>Return to your dashboard with your store connected</span>
+                  <span>{t('shop.shopifyStep3')}</span>
                 </li>
               </ul>
             </div>

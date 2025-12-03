@@ -1,11 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslations } from '../../hooks/useTranslations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, DollarSign, FileText, Download, Eye, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
+  const { t } = useTranslations();
+  
   const formatCurrency = (amount, currency) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -45,7 +48,7 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
             </div>
           </div>
           <Badge variant={getStatusColor(isOverdue ? 'overdue' : invoice.status)} className="capitalize">
-            {isOverdue ? 'Overdue' : invoice.status}
+            {isOverdue ? t('invoices.overdue') : t(`invoices.${invoice.status}`)}
           </Badge>
         </div>
       </CardHeader>
@@ -54,14 +57,14 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-muted-foreground">Issue Date</p>
+              <p className="text-muted-foreground">{t('invoices.issueDate')}</p>
               <p className="font-medium">{format(new Date(invoice.date), 'MMM dd, yyyy')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-muted-foreground">Due Date</p>
+              <p className="text-muted-foreground">{t('invoices.dueDate')}</p>
               <p className="font-medium">{format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</p>
             </div>
           </div>
@@ -71,7 +74,7 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Amount</span>
+              <span className="text-sm text-muted-foreground">{t('invoices.amount')}</span>
             </div>
             <span className="text-2xl font-bold">
               {formatCurrency(invoice.amount, invoice.currency)}
@@ -80,7 +83,7 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
 
           {invoice.status === 'paid' && invoice.paidDate && (
             <p className="text-xs text-muted-foreground mb-3">
-              Paid on {format(new Date(invoice.paidDate), 'MMM dd, yyyy')}
+              {t('invoices.paidOn')} {format(new Date(invoice.paidDate), 'MMM dd, yyyy')}
             </p>
           )}
 
@@ -92,7 +95,7 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
               onClick={() => onView(invoice.id)}
             >
               <Eye className="h-4 w-4 mr-2" />
-              View
+              {t('invoices.view')}
             </Button>
             {invoice.status === 'pending' && (
               <Button
@@ -101,7 +104,7 @@ export const InvoiceCard = ({ invoice, onView, onPay, onDownload }) => {
                 onClick={() => onPay(invoice.id)}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                Pay Now
+                {t('invoices.payNow')}
               </Button>
             )}
             <Button

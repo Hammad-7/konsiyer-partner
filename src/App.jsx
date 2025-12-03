@@ -4,13 +4,14 @@ import { ShopProvider } from './contexts/ShopContext';
 import { useState } from 'react';
 import { useTranslations } from './hooks/useTranslations';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import DashboardRouter from './components/DashboardRouter';
 import Invoices from './components/Invoices';
 import InvoiceDetail from './components/InvoiceDetail';
 import Settings from './components/Settings';
 import Shops from './components/Shops';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import FeatureProtectedRoute from './components/FeatureProtectedRoute';
 import ConditionalRedirect from './components/ConditionalRedirect';
 import ConnectProtectedRoute from './components/ConnectProtectedRoute';
 import DashboardProtectedRoute from './components/DashboardProtectedRoute';
@@ -68,7 +69,7 @@ function AppContent() {
             <ProtectedRoute>
               <DashboardProtectedRoute>
                 <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <Dashboard />
+                  <DashboardRouter />
                 </DashboardLayout>
               </DashboardProtectedRoute>
             </ProtectedRoute>
@@ -79,9 +80,11 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <Invoices />
-                </DashboardLayout>
+                <FeatureProtectedRoute>
+                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                    <Invoices />
+                  </DashboardLayout>
+                </FeatureProtectedRoute>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 
@@ -91,9 +94,11 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <InvoiceDetail />
-                </DashboardLayout>
+                <FeatureProtectedRoute>
+                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                    <InvoiceDetail />
+                  </DashboardLayout>
+                </FeatureProtectedRoute>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 
@@ -103,9 +108,11 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <Invoices />
-                </DashboardLayout>
+                <FeatureProtectedRoute>
+                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                    <Invoices />
+                  </DashboardLayout>
+                </FeatureProtectedRoute>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 
@@ -115,9 +122,11 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <Shops />
-                </DashboardLayout>
+                <FeatureProtectedRoute>
+                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                    <Shops />
+                  </DashboardLayout>
+                </FeatureProtectedRoute>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 

@@ -139,13 +139,42 @@ def _get_external_firebase_client():
 		raise
 
 
-def _add_cors_headers(response_headers):
-	"""Add CORS headers to allow cross-origin requests from frontend."""
+def _add_cors_headers(response_headers, request=None):
+	"""Add CORS headers to allow cross-origin requests from frontend.
+	
+	Args:
+		response_headers: Dictionary of response headers to update
+		request: Optional request object to get origin from
+	"""
+	# Get the origin from the request if available
+	origin = None
+	if request:
+		origin = request.headers.get("Origin")
+	
+	# List of allowed origins
+	allowed_origins = [
+		"https://dev-konsiyer.ikas.shop",
+		"http://localhost:5173",
+		"http://localhost:3000",
+		# Add more allowed origins here
+	]
+	
+	# Check if origin is in allowed list or allow all .ikas.shop domains
+	if origin:
+		if origin in allowed_origins or origin.endswith(".ikas.shop") or origin.endswith(".myikas.com"):
+			response_headers["Access-Control-Allow-Origin"] = origin
+			response_headers["Access-Control-Allow-Credentials"] = "true"
+		else:
+			# Fallback to wildcard for unrecognized origins
+			response_headers["Access-Control-Allow-Origin"] = "*"
+	else:
+		# If no origin header or request, use wildcard
+		response_headers["Access-Control-Allow-Origin"] = "*"
+	
 	response_headers.update({
-		"Access-Control-Allow-Origin": "*",  # In production, replace with your specific domain
 		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 		"Access-Control-Allow-Headers": "Content-Type, Authorization",
-		"Access-Control-Expose-Headers": "Location",  # Allow frontend to access Location header
+		"Access-Control-Expose-Headers": "Location",
 		"Access-Control-Max-Age": "3600"
 	})
 	return response_headers
@@ -155,6 +184,51 @@ def _handle_preflight(req):
 	"""Handle CORS preflight requests."""
 	if req.method == 'OPTIONS':
 		headers = _add_cors_headers({})
+		return https_fn.Response("", status=200, headers=headers)
+	return None
+
+
+def _add_cors_headers_with_credentials(response_headers, request):
+	"""Add CORS headers for requests that need credentials support (like sendBeacon).
+	
+	This is specifically for endpoints that receive requests with credentials from Ikas shops.
+	
+	Args:
+		response_headers: Dictionary of response headers to update
+		request: Request object to get origin from
+	"""
+	# Get the origin from the request
+	origin = request.headers.get("Origin")
+	
+	# List of allowed origins
+	allowed_origins = [
+		"https://dev-konsiyer.ikas.shop",
+		"http://localhost:5173",
+		"http://localhost:3000",
+	]
+	
+	# Check if origin is in allowed list or allow all .ikas.shop / .myikas.com domains
+	if origin:
+		if origin in allowed_origins or origin.endswith(".ikas.shop") or origin.endswith(".myikas.com"):
+			response_headers["Access-Control-Allow-Origin"] = origin
+			response_headers["Access-Control-Allow-Credentials"] = "true"
+		else:
+			# For unrecognized origins, allow but without credentials
+			response_headers["Access-Control-Allow-Origin"] = origin
+	
+	response_headers.update({
+		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Access-Control-Expose-Headers": "Location",
+		"Access-Control-Max-Age": "3600"
+	})
+	return response_headers
+
+
+def _handle_preflight_with_credentials(req):
+	"""Handle CORS preflight requests for endpoints that need credentials support."""
+	if req.method == 'OPTIONS':
+		headers = _add_cors_headers_with_credentials({}, req)
 		return https_fn.Response("", status=200, headers=headers)
 	return None
 
@@ -1441,6 +1515,179 @@ def init_super_admin(req: https_fn.Request) -> https_fn.Response:
 		logger.exception("Error initializing super admin")
 		return https_fn.Response(
 			json.dumps({"error": str(e)}),
+			status=500,
+			headers=headers
+		)
+
+
+# ============================================================================
+# CHECKOUT TRACKING ENDPOINT (FOR IKAS PLATFORM)
+# ============================================================================
+
+@https_fn.on_request()
+def track_checkout(req: https_fn.Request) -> https_fn.Response:
+	"""Track successful checkout completions from Ikas stores.
+	
+	Receives checkout data including affiliate reference, ecommerce details, and customer info.
+	Stores the event in Firestore under shops_events/{shop_affiliation}/events/{event_id}.
+	
+	Expected payload:
+	{
+		"kons_ref": "affiliate_reference_code",  # Can be null
+		"timestamp": "2025-11-03T15:07:25.103Z",
+		"page": "https://shop.ikas.shop/checkout?id=xxx&step=success",
+		"ecommerce": {
+			"transaction_id": "1011",
+			"affiliation": "dev-konsiyer.ikas.shop",
+			"value": "18",
+			"tax": "3",
+			"shipping": "0",
+			"currency": "TRY",
+			"coupon": null,
+			"items": [...],
+			"customer": {...}
+		}
+	}
+	
+	Returns: JSON success response
+	"""
+	# Handle CORS preflight with credentials support
+	preflight_response = _handle_preflight_with_credentials(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers_with_credentials({"Content-Type": "application/json"}, req)
+
+	try:
+		if req.method != "POST":
+			logger.warning("Invalid method for track_checkout")
+			return https_fn.Response(
+				json.dumps({"error": "Method Not Allowed"}),
+				status=405,
+				headers=headers
+			)
+
+		# Parse request body
+		try:
+			body = req.get_json(silent=True) or {}
+		except Exception as e:
+			logger.error(f"Failed to parse JSON body: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": "Invalid JSON payload"}),
+				status=400,
+				headers=headers
+			)
+
+		# Extract required fields
+		kons_ref = body.get("kons_ref")
+		timestamp = body.get("timestamp")
+		page = body.get("page")
+		ecommerce = body.get("ecommerce")
+
+		# Validate required fields
+		if not ecommerce or not isinstance(ecommerce, dict):
+			logger.warning("Missing or invalid ecommerce data")
+			return https_fn.Response(
+				json.dumps({"error": "Missing or invalid ecommerce data"}),
+				status=400,
+				headers=headers
+			)
+
+		# Extract shop affiliation (used as document name)
+		affiliation = ecommerce.get("affiliation")
+		if not affiliation:
+			logger.warning("Missing affiliation in ecommerce data")
+			return https_fn.Response(
+				json.dumps({"error": "Missing shop affiliation"}),
+				status=400,
+				headers=headers
+			)
+
+		# Sanitize affiliation for use as document ID (remove special chars, lowercase)
+		shop_doc_id = re.sub(r'[^a-z0-9\-.]', '', affiliation.lower())
+		
+		# Extract transaction details
+		transaction_id = ecommerce.get("transaction_id")
+		if not transaction_id:
+			logger.warning("Missing transaction_id in ecommerce data")
+			return https_fn.Response(
+				json.dumps({"error": "Missing transaction_id"}),
+				status=400,
+				headers=headers
+			)
+
+		# Prepare event data
+		event_data = {
+			"kons_ref": kons_ref,
+			"timestamp": timestamp,
+			"page": page,
+			"ecommerce": ecommerce,
+			"transaction_id": transaction_id,
+			"affiliation": affiliation,
+			"value": ecommerce.get("value"),
+			"currency": ecommerce.get("currency"),
+			"items_count": len(ecommerce.get("items", [])),
+			"customer_email": ecommerce.get("customer", {}).get("email"),
+			"customer_id": ecommerce.get("customer", {}).get("id"),
+			"received_at": firestore.SERVER_TIMESTAMP,
+			"event_type": "checkout_completed"
+		}
+
+		# Store in Firestore
+		db = firestore.client()
+		
+		# Structure: shops_events/{shop_affiliation}/events/{transaction_id}
+		shop_events_ref = db.collection("shops_events").document(shop_doc_id)
+		events_collection = shop_events_ref.collection("events")
+		
+		# Use transaction_id as the document ID to prevent duplicates
+		event_doc_ref = events_collection.document(transaction_id)
+		
+		# Check if this transaction already exists
+		existing_event = event_doc_ref.get()
+		if existing_event.exists:
+			logger.info(f"Transaction {transaction_id} already recorded for {shop_doc_id}")
+			return https_fn.Response(
+				json.dumps({
+					"success": True,
+					"message": "Transaction already recorded",
+					"transaction_id": transaction_id,
+					"shop": affiliation,
+					"duplicate": True
+				}),
+				status=200,
+				headers=headers
+			)
+		
+		# Save the event
+		event_doc_ref.set(event_data)
+		
+		# Update shop document with summary stats
+		shop_events_ref.set({
+			"shop_name": affiliation,
+			"last_event_at": firestore.SERVER_TIMESTAMP,
+			"total_events": firestore.Increment(1)
+		}, merge=True)
+		
+		logger.info(f"Successfully tracked checkout for {shop_doc_id}, transaction: {transaction_id}, kons_ref: {kons_ref}")
+
+		return https_fn.Response(
+			json.dumps({
+				"success": True,
+				"message": "Checkout event tracked successfully",
+				"transaction_id": transaction_id,
+				"shop": affiliation,
+				"kons_ref": kons_ref,
+				"event_id": transaction_id
+			}),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in track_checkout")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
 			status=500,
 			headers=headers
 		)

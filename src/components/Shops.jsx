@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
+import { useTranslations } from '../hooks/useTranslations';
 
 import ShopHeader from './shared/ShopHeader';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { useShop } from '../contexts/ShopContext';
 
 const Shops = () => {
   const { connectedShops } = useShop();
+  const { t } = useTranslations();
 
   // Combine real connected shops with mock data
   const allShops = mockShops.map(shop => {
@@ -31,14 +33,14 @@ const Shops = () => {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Shops</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('shopsPage.title')}</h1>
             <p className="text-gray-600">
-              Manage your connected shops and view their performance.
+              {t('shopsPage.description')}
             </p>
           </div>
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Connect New Shop
+            {t('shopsPage.connectNewShop')}
           </Button>
         </motion.div>
 
@@ -62,14 +64,14 @@ const Shops = () => {
               <Plus className="h-12 w-12 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No shops connected
+              {t('shopsPage.noShopsConnected')}
             </h3>
             <p className="text-gray-600 mb-6">
-              Connect your first shop to start tracking sales and managing invoices.
+              {t('shopsPage.noShopsDescription')}
             </p>
             <Button size="lg">
               <Plus className="h-5 w-5 mr-2" />
-              Connect Your First Shop
+              {t('shopsPage.connectFirstShop')}
             </Button>
           </motion.div>
         )}

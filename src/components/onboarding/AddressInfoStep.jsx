@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { useTranslations } from '../../hooks/useTranslations';
 
 const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
+  const { t } = useTranslations();
   const [formData, setFormData] = useState({
     street: data?.street || '',
     city: data?.city || '',
@@ -12,6 +14,7 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Common countries
   const countries = [
@@ -33,23 +36,23 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
     const newErrors = {};
     
     if (!formData.street || formData.street.trim().length < 5) {
-      newErrors.street = 'Street address is required (minimum 5 characters)';
+      newErrors.street = t('onboarding.streetRequired');
     }
     
     if (!formData.city || formData.city.trim().length < 2) {
-      newErrors.city = 'City is required';
+      newErrors.city = t('onboarding.cityRequired');
     }
 
     if (!formData.state || formData.state.trim().length < 2) {
-      newErrors.state = 'State/Province is required';
+      newErrors.state = t('onboarding.stateRequired');
     }
 
     if (!formData.postalCode || formData.postalCode.trim().length < 3) {
-      newErrors.postalCode = 'Postal code is required';
+      newErrors.postalCode = t('onboarding.postalCodeRequired');
     }
 
     if (!formData.country) {
-      newErrors.country = 'Country is required';
+      newErrors.country = t('onboarding.countryRequired');
     }
 
     setErrors(newErrors);
@@ -69,6 +72,10 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
   };
 
   return (
@@ -95,8 +102,9 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
             onChange={(e) => handleChange('street', e.target.value)}
             placeholder="123 Main Street, Suite 100"
             className="mt-1"
+            onBlur={() => handleBlur('street')}
           />
-          {errors.street && (
+          {touched.street && errors.street && (
             <p className="mt-1 text-sm text-red-600">{errors.street}</p>
           )}
         </div>
@@ -114,8 +122,9 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
               onChange={(e) => handleChange('city', e.target.value)}
               placeholder="Istanbul"
               className="mt-1"
+              onBlur={() => handleBlur('city')}
             />
-            {errors.city && (
+            {touched.city && errors.city && (
               <p className="mt-1 text-sm text-red-600">{errors.city}</p>
             )}
           </div>
@@ -131,8 +140,9 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
               onChange={(e) => handleChange('state', e.target.value)}
               placeholder="Istanbul"
               className="mt-1"
+              onBlur={() => handleBlur('state')}
             />
-            {errors.state && (
+            {touched.state && errors.state && (
               <p className="mt-1 text-sm text-red-600">{errors.state}</p>
             )}
           </div>
@@ -151,8 +161,9 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
               onChange={(e) => handleChange('postalCode', e.target.value)}
               placeholder="34000"
               className="mt-1"
+              onBlur={() => handleBlur('postalCode')}
             />
-            {errors.postalCode && (
+            {touched.postalCode && errors.postalCode && (
               <p className="mt-1 text-sm text-red-600">{errors.postalCode}</p>
             )}
           </div>
@@ -165,6 +176,7 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
               id="country"
               value={formData.country}
               onChange={(e) => handleChange('country', e.target.value)}
+              onBlur={() => handleBlur('country')}
               className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">Select country</option>
@@ -174,7 +186,7 @@ const AddressInfoStep = ({ data, onUpdate, onValidationChange }) => {
                 </option>
               ))}
             </select>
-            {errors.country && (
+            {touched.country && errors.country && (
               <p className="mt-1 text-sm text-red-600">{errors.country}</p>
             )}
           </div>

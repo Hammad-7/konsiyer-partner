@@ -60,7 +60,7 @@ const IkasConnectPage = () => {
     const isClientSecretValid = validateField('clientSecret', clientSecret);
 
     if (!isShopNameValid || !isClientIdValid || !isClientSecretValid) {
-      setError('Please fill in all required fields');
+      setError(t('shop.pleaseEnterAllFields'));
       return;
     }
 
@@ -113,10 +113,10 @@ const IkasConnectPage = () => {
               <img src="/icons/ikas_icon.png" alt="Ikas" className="h-16 w-16" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Connect Ikas Store
+              {t('shop.connectIkasStore')}
             </h1>
             <p className="text-gray-600">
-              Enter your Ikas store credentials to get started
+              {t('shop.ikasStoreCredentials')}
             </p>
           </div>
 
@@ -126,7 +126,7 @@ const IkasConnectPage = () => {
             {/* Shop Name Input */}
             <div>
               <label htmlFor="shopName" className="block text-sm font-medium text-gray-700 mb-2">
-                Shop Name <span className="text-red-500">*</span>
+                {t('shop.shopNameLabel')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -134,7 +134,7 @@ const IkasConnectPage = () => {
                   id="shopName"
                   value={shopName}
                   onChange={handleShopNameChange}
-                  placeholder="example-store"
+                  placeholder={t('shop.shopNamePlaceholder')}
                   disabled={connecting}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
                     validationErrors.shopName ? 'border-red-300' : 'border-gray-300'
@@ -159,14 +159,14 @@ const IkasConnectPage = () => {
               
               {/* Help Text */}
               <p className="mt-2 text-sm text-gray-500">
-                Your Ikas store name
+                {t('shop.shopNameHelp')}
               </p>
             </div>
 
             {/* Client ID Input */}
             <div>
               <label htmlFor="clientId" className="block text-sm font-medium text-gray-700 mb-2">
-                Client ID <span className="text-red-500">*</span>
+                {t('shop.clientId')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -174,7 +174,7 @@ const IkasConnectPage = () => {
                   id="clientId"
                   value={clientId}
                   onChange={handleClientIdChange}
-                  placeholder="Enter your Ikas Client ID"
+                  placeholder={t('shop.clientIdPlaceholder')}
                   disabled={connecting}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
                     validationErrors.clientId ? 'border-red-300' : 'border-gray-300'
@@ -196,7 +196,7 @@ const IkasConnectPage = () => {
             {/* Client Secret Input */}
             <div>
               <label htmlFor="clientSecret" className="block text-sm font-medium text-gray-700 mb-2">
-                Client Secret <span className="text-red-500">*</span>
+                {t('shop.clientSecret')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -204,7 +204,7 @@ const IkasConnectPage = () => {
                   id="clientSecret"
                   value={clientSecret}
                   onChange={handleClientSecretChange}
-                  placeholder="Enter your Ikas Client Secret"
+                  placeholder={t('shop.clientSecretPlaceholder')}
                   disabled={connecting}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
                     validationErrors.clientSecret ? 'border-red-300' : 'border-gray-300'
@@ -251,7 +251,7 @@ const IkasConnectPage = () => {
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                  Process
+                  {t('shop.connectButton')}
                 </>
               )}
             </button>
@@ -262,20 +262,20 @@ const IkasConnectPage = () => {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="bg-purple-50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-purple-800 mb-2">
-                What happens next?
+                {t('shop.whatHappensNext')}
               </h3>
               <ul className="text-sm text-purple-700 space-y-1">
                 <li className="flex items-start">
                   <span className="mr-2">1.</span>
-                  <span>We'll verify your credentials with Ikas</span>
+                  <span>{t('shop.ikasStep1')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">2.</span>
-                  <span>Fetch your access token securely</span>
+                  <span>{t('shop.ikasStep2')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">3.</span>
-                  <span>Connect your store to your dashboard</span>
+                  <span>{t('shop.ikasStep3')}</span>
                 </li>
               </ul>
             </div>

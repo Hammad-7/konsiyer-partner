@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { isUserAdmin } from '../services/adminService';
+import { useTranslations } from '../hooks/useTranslations';
 import LoadingSpinner from './LoadingSpinner';
 
 const AdminProtectedRoute = ({ children }) => {
+  const { t } = useTranslations();
   const { user, loading, isAdmin: contextIsAdmin } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -38,7 +40,7 @@ const AdminProtectedRoute = ({ children }) => {
   if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-        <LoadingSpinner size="xl" text="Verifying admin access..." />
+        <LoadingSpinner size="xl" text={t('common.verifyingAdminAccess')} />
       </div>
     );
   }
@@ -66,13 +68,13 @@ const AdminProtectedRoute = ({ children }) => {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-6">You don't have permission to access the admin panel.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('common.accessDenied')}</h2>
+          <p className="text-gray-600 mb-6">{t('common.noPermissionAdmin')}</p>
           <a 
             href="/dashboard" 
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
           >
-            Go to Dashboard
+            {t('common.goToDashboard')}
           </a>
         </div>
       </div>

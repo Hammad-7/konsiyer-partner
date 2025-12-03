@@ -10,73 +10,28 @@ const OtherShopConnectPage = () => {
   const { connectOtherShop, connecting } = useShop();
   
   const [shopName, setShopName] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [xmlUrl, setXmlUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [dragOver, setDragOver] = useState(false);
 
-  const acceptedFileTypes = '.xml,.csv';
-  const maxFileSize = 10 * 1024 * 1024; // 10MB
-
-  const validateFile = (file) => {
-    if (!file) return 'Please select a file';
+  const validateXmlUrl = (url) => {
+    if (!url) return 'Please enter an XML URL';
     
-    const allowedTypes = ['text/xml', 'application/xml', 'text/csv', 'application/csv'];
-    const allowedExtensions = ['.xml', '.csv'];
-    
-    const hasValidType = allowedTypes.includes(file.type);
-    const hasValidExtension = allowedExtensions.some(ext => 
-      file.name.toLowerCase().endsWith(ext)
-    );
-    
-    if (!hasValidType && !hasValidExtension) {
-      return 'Please select a valid XML or CSV file';
-    }
-    
-    if (file.size > maxFileSize) {
-      return 'File size must be less than 10MB';
-    }
-    
-    return null;
-  };
-
-  const handleFileSelect = (file) => {
-    setError('');
-    const validationError = validateFile(file);
-    
-    if (validationError) {
-      setError(validationError);
-      setSelectedFile(null);
-      return;
-    }
-    
-    setSelectedFile(file);
-  };
-
-  const handleFileInput = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
+    try {
+      const urlObj = new URL(url);
+      if (!urlObj.protocol.match(/^https?:$/)) {
+        return 'URL must use HTTP or HTTPS protocol';
+      }
+      
+      // Check if URL pathname contains .xml (supports query parameters)
+      const pathname = urlObj.pathname.toLowerCase();
+      if (!pathname.includes('.xml')) {
+        return 'URL must point to an XML file';
+      }
+      
+      return null;
+    } catch (e) {
+      return 'Please enter a valid URL';
     }
   };
 
@@ -88,8 +43,9 @@ const OtherShopConnectPage = () => {
       return;
     }
     
-    if (!selectedFile) {
-      setError('Please select a file to upload');
+    const urlValidationError = validateXmlUrl(xmlUrl);
+    if (urlValidationError) {
+      setError(urlValidationError);
       return;
     }
 
@@ -97,7 +53,7 @@ const OtherShopConnectPage = () => {
       setError('');
       setSuccess('');
       
-      await connectOtherShop(shopName.trim(), selectedFile);
+      await connectOtherShop(shopName.trim(), null, xmlUrl.trim());
       
       setSuccess(t('shop.connectionSuccess'));
       
@@ -114,11 +70,6 @@ const OtherShopConnectPage = () => {
 
   const handleBackToOptions = () => {
     navigate('/connect');
-  };
-
-  const removeFile = () => {
-    setSelectedFile(null);
-    setError('');
   };
 
   return (
@@ -140,16 +91,16 @@ const OtherShopConnectPage = () => {
           
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
+            <div className="mx-auto h-16 w-16 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
               <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Connect Other Shop
+              Connect XML Feed
             </h1>
             <p className="text-gray-600">
-              Upload your product data to connect your shop
+              Enter your XML feed URL to connect your shop
             </p>
           </div>
 
@@ -166,88 +117,32 @@ const OtherShopConnectPage = () => {
                 id="shopName"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                placeholder={t('shop.shopNamePlaceholder')}
+                placeholder="Enter your shop name"
                 disabled={connecting}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
                   connecting ? 'bg-gray-50 cursor-not-allowed' : ''
                 }`}
               />
             </div>
 
-            {/* File Upload Section */}
+            {/* XML URL Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product Data File
+              <label htmlFor="xmlUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                XML Feed URL
               </label>
-              
-              {/* File Drop Zone */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors duration-200 ${
-                  dragOver 
-                    ? 'border-blue-400 bg-blue-50' 
-                    : selectedFile 
-                      ? 'border-green-400 bg-green-50' 
-                      : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+              <input
+                type="url"
+                id="xmlUrl"
+                value={xmlUrl}
+                onChange={(e) => setXmlUrl(e.target.value)}
+                placeholder="https://example.com/products.xml"
+                disabled={connecting}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
+                  connecting ? 'bg-gray-50 cursor-not-allowed' : ''
                 }`}
-              >
-                {selectedFile ? (
-                  /* Selected File Display */
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <svg className="h-8 w-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <div className="text-left">
-                        <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={removeFile}
-                      className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                    >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  /* File Upload Prompt */
-                  <div>
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                    </svg>
-                    <p className="text-lg font-medium text-gray-900 mb-2">
-                      Drop your file here or click to browse
-                    </p>
-                    <p className="text-sm text-gray-500 mb-4">
-                      {t('shop.supportedFormats')}
-                    </p>
-                    <label htmlFor="fileInput" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200">
-                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      {t('shop.chooseFile')}
-                    </label>
-                    <input
-                      type="file"
-                      id="fileInput"
-                      accept={acceptedFileTypes}
-                      onChange={handleFileInput}
-                      className="hidden"
-                    />
-                  </div>
-                )}
-              </div>
-              
+              />
               <p className="mt-2 text-xs text-gray-500">
-                Maximum file size: 10MB
+                Enter the URL to your XML product feed
               </p>
             </div>
 
@@ -278,8 +173,8 @@ const OtherShopConnectPage = () => {
             {/* Connect Button */}
             <button
               type="submit"
-              disabled={connecting || !shopName.trim() || !selectedFile}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
+              disabled={connecting || !shopName.trim() || !xmlUrl.trim()}
+              className="w-full bg-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
             >
               {connecting ? (
                 <>
@@ -289,7 +184,7 @@ const OtherShopConnectPage = () => {
               ) : (
                 <>
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   {t('shop.connectButton')}
                 </>
@@ -300,19 +195,22 @@ const OtherShopConnectPage = () => {
 
           {/* Info Section */}
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">
-                Supported File Formats
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-purple-800 mb-2">
+                Important Information
               </h3>
-              <div className="text-sm text-blue-700 space-y-2">
-                <div>
-                  <strong>XML:</strong> Product catalog with structured data
-                </div>
-                <div>
-                  <strong>CSV:</strong> Spreadsheet with product information
-                </div>
-                <p className="text-xs text-blue-600 mt-3">
-                  Your data will be securely processed and stored. We support standard e-commerce data formats.
+              <div className="text-sm text-purple-700 space-y-2">
+                <p>
+                  • Your XML feed URL must be publicly accessible
+                </p>
+                <p>
+                  • The URL must point to a valid XML file
+                </p>
+                <p>
+                  • Each XML URL can only be used once
+                </p>
+                <p className="text-xs text-purple-600 mt-3">
+                  Your data will be securely processed and stored.
                 </p>
               </div>
             </div>

@@ -209,23 +209,51 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // Connect other shop types (with file upload)
-  const connectOtherShop = async (shopName, file) => {
-    if (!shopName || !file) {
-      throw new Error('Shop name and file are required');
+  // Connect other shop types (with XML URL)
+  const connectOtherShop = async (shopName, file, xmlFileUrl = null) => {
+    if (!shopName || (!file && !xmlFileUrl)) {
+      throw new Error('Shop name and either file or XML file URL are required');
     }
 
     try {
       setConnecting(true);
 
-      // For now, we'll create a basic connection record
-      // In a real implementation, you'd upload the file to Firebase Storage
-      // and process the XML/CSV data
-      await createShopConnection(shopName, 'other', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type
-      });
+      // Check if XML URL is already used by another user
+      if (xmlFileUrl) {
+        // Query all users' shops to check for duplicate XML URLs
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        
+        for (const userDoc of usersSnapshot.docs) {
+          // Skip current user
+          if (userDoc.id === user.uid) continue;
+          
+          // Check shops subcollection
+          const shopsRef = collection(db, 'users', userDoc.id, 'shops');
+          const shopsSnapshot = await getDocs(shopsRef);
+          
+          for (const shopDoc of shopsSnapshot.docs) {
+            const shopData = shopDoc.data();
+            if (shopData.xmlFileUrl === xmlFileUrl) {
+              throw new Error('This XML URL is already being used by another shop. Each XML URL can only be used once.');
+            }
+          }
+        }
+      }
+
+      // Create shop connection with additional data
+      const additionalData = xmlFileUrl 
+        ? {
+            xmlFileUrl,
+            fileType: 'xml'
+          }
+        : {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          };
+
+      await createShopConnection(shopName, 'other', additionalData);
 
       return { success: true };
 

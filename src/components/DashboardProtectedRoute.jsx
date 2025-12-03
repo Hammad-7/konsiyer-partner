@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useShop } from '../contexts/ShopContext';
+import { useTranslations } from '../hooks/useTranslations';
 import LoadingSpinner from './LoadingSpinner';
 
 /**
@@ -8,6 +9,7 @@ import LoadingSpinner from './LoadingSpinner';
  * EXCEPT during Shopify callbacks (when shop and state params are present)
  */
 const DashboardProtectedRoute = ({ children }) => {
+  const { t } = useTranslations();
   const { hasConnectedShops, loading: shopLoading, connectedShops } = useShop();
   const location = useLocation();
 
@@ -21,7 +23,7 @@ const DashboardProtectedRoute = ({ children }) => {
   if (shopLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
-        <LoadingSpinner size="xl" text="Loading your dashboard..." />
+        <LoadingSpinner size="xl" text={t('common.loadingDashboard')} />
       </div>
     );
   }
