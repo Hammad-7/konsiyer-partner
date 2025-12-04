@@ -183,7 +183,12 @@ export const hasPendingOnboarding = async () => {
  */
 export const validateOnboardingData = (data) => {
   // Business Info validation
-  // Require brand / business name (type and legal structure removed)
+  // Require company legal name
+  if (!data.businessInfo?.companyLegalName || data.businessInfo.companyLegalName.trim().length < 2) {
+    return 'Company legal name is required (minimum 2 characters)';
+  }
+  
+  // Require brand / business name
   if (!data.businessInfo?.name && !data.businessInfo?.brandName) {
     return 'Brand name is required';
   }
@@ -201,9 +206,7 @@ export const validateOnboardingData = (data) => {
   if (!data.addressInfo?.state || data.addressInfo.state.trim().length < 2) {
     return 'State/Province is required';
   }
-  if (!data.addressInfo?.postalCode || data.addressInfo.postalCode.trim().length < 3) {
-    return 'Postal/ZIP code is required';
-  }
+  // Postal code is now optional
   if (!data.addressInfo?.country || data.addressInfo.country.trim().length < 2) {
     return 'Country is required';
   }

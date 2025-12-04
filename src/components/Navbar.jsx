@@ -84,7 +84,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="font-logo font-bold text-2xl tracking-wide text-gray-900">
+            <h1 className="font-seasons font-bold text-3xl tracking-wide text-gray-900">
               Konsiyer
               <span className="text-sm font-body font-medium ml-2">Enterprise</span>
             </h1>
@@ -119,7 +119,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
             className="flex items-center cursor-pointer"
             onClick={() => navigate(isFullyAuthenticated ? '/dashboard' : '/')}
           >
-            <h1 className="font-logo font-bold text-2xl tracking-wide text-gray-900">
+            <h1 className="font-seasons font-bold text-3xl tracking-wide text-gray-900">
               Konsiyer
               <span className="text-sm font-body font-medium ml-2">Enterprise</span>
             </h1>

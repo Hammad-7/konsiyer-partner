@@ -66,6 +66,14 @@
   font-style: normal;
   font-display: swap;
 }
+
+@font-face {
+  font-family: 'Seasons';
+  src: url('/fonts/Seasons/Fontspring-DEMO-theseasons-bd.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
   :root {
     /* Base Colors */
     --background: 0 0% 100%;

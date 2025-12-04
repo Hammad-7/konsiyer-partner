@@ -76,6 +76,10 @@ export default {
   			],
   			heading: [
   				'var(--font-heading)'
+  			],
+  			seasons: [
+  				'Seasons',
+  				'sans-serif'
   			]
   		}
   	}

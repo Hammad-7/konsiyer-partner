@@ -14,6 +14,7 @@ const BusinessInfoStep = ({
 }) => {
   const { t } = useTranslations();
   const [business, setBusiness] = useState({
+    companyLegalName: businessData?.companyLegalName || '',
     brandName: businessData?.brandName || businessData?.name || ''
   });
 
@@ -22,7 +23,7 @@ const BusinessInfoStep = ({
     city: addressData?.city || '',
     state: addressData?.state || '',
     postalCode: addressData?.postalCode || '',
-    country: addressData?.country || ''
+    country: addressData?.country || 'Türkiye'
   });
 
   const [tax, setTax] = useState({
@@ -36,6 +37,11 @@ const BusinessInfoStep = ({
   // Validation rules for combined step
   useEffect(() => {
     const newErrors = {};
+
+    // Company legal name required
+    if (!business.companyLegalName || business.companyLegalName.trim().length < 2) {
+      newErrors.companyLegalName = t('onboarding.companyLegalNameRequired');
+    }
 
     // Brand name required
     if (!business.brandName || business.brandName.trim().length < 2) {
@@ -52,9 +58,7 @@ const BusinessInfoStep = ({
     if (!address.state || address.state.trim().length < 2) {
       newErrors.state = t('onboarding.stateRequired');
     }
-    if (!address.postalCode || address.postalCode.trim().length < 3) {
-      newErrors.postalCode = t('onboarding.postalCodeRequired');
-    }
+    // Postal code is now optional
     if (!address.country) {
       newErrors.country = t('onboarding.countryRequired');
     }
@@ -74,7 +78,7 @@ const BusinessInfoStep = ({
 
     // If valid, push updates upstream
     if (isValid) {
-      if (onUpdateBusiness) onUpdateBusiness({ name: business.brandName, brandName: business.brandName });
+      if (onUpdateBusiness) onUpdateBusiness({ companyLegalName: business.companyLegalName, name: business.brandName, brandName: business.brandName });
       if (onUpdateAddress) onUpdateAddress(address);
       if (onUpdateTax) onUpdateTax({ taxId: cleanedTaxId, taxOffice: tax.taxOffice });
     }
@@ -105,7 +109,21 @@ const BusinessInfoStep = ({
 
       {/* Business Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">{t('onboarding.businessInfoSection')}</h3>
+        <div>
+          <Label htmlFor="companyLegalName" className="text-sm font-medium text-gray-700">
+            {t('onboarding.companyLegalName')} <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="companyLegalName"
+            type="text"
+            value={business.companyLegalName}
+            onChange={(e) => handleBusinessChange('companyLegalName', e.target.value)}
+            // placeholder={t('onboarding.companyLegalNamePlaceholder')}
+            className="mt-1"
+            onBlur={() => handleBlur('companyLegalName')}
+          />
+          {touched.companyLegalName && errors.companyLegalName && <p className="mt-1 text-sm text-red-600">{errors.companyLegalName}</p>}
+        </div>
         <div>
           <Label htmlFor="brandName" className="text-sm font-medium text-gray-700">
             {t('onboarding.brandNameLabel')} <span className="text-red-500">*</span>
@@ -125,8 +143,6 @@ const BusinessInfoStep = ({
 
       {/* Address Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">{t('onboarding.businessAddress')}</h3>
-
         <div>
           <Label htmlFor="street" className="text-sm font-medium text-gray-700">{t('onboarding.streetAddress')} <span className="text-red-500">*</span></Label>
           <Input id="street" type="text" value={address.street} onChange={(e) => handleAddressChange('street', e.target.value)} className="mt-1" placeholder={t('onboarding.streetPlaceholder')} onBlur={() => handleBlur('street')} />
@@ -148,13 +164,13 @@ const BusinessInfoStep = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="postalCode" className="text-sm font-medium text-gray-700">{t('onboarding.postalZipCode')} <span className="text-red-500">*</span></Label>
+            <Label htmlFor="postalCode" className="text-sm font-medium text-gray-700">{t('onboarding.postalZipCode')}</Label>
             <Input id="postalCode" type="text" value={address.postalCode} onChange={(e) => handleAddressChange('postalCode', e.target.value)} className="mt-1" onBlur={() => handleBlur('postalCode')} />
             {touched.postalCode && errors.postalCode && <p className="mt-1 text-sm text-red-600">{errors.postalCode}</p>}
           </div>
           <div>
             <Label htmlFor="country" className="text-sm font-medium text-gray-700">{t('onboarding.country')} <span className="text-red-500">*</span></Label>
-            <Input id="country" type="text" value={address.country} onChange={(e) => handleAddressChange('country', e.target.value)} className="mt-1" onBlur={() => handleBlur('country')} />
+            <Input id="country" type="text" value={address.country} onChange={(e) => handleAddressChange('country', e.target.value)} className="mt-1" onBlur={() => handleBlur('country')} disabled />
             {touched.country && errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
           </div>
         </div>
@@ -162,8 +178,6 @@ const BusinessInfoStep = ({
 
       {/* Tax Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">{t('onboarding.taxInfo')}</h3>
-
         <div>
           <Label htmlFor="taxId" className="text-sm font-medium text-gray-700">{t('onboarding.taxIdLabel')} <span className="text-red-500">*</span></Label>
           <Input id="taxId" type="text" value={tax.taxId} onChange={(e) => handleTaxChange('taxId', e.target.value)} className="mt-1 font-mono" maxLength={11} placeholder={t('onboarding.taxIdPlaceholder')} onBlur={() => handleBlur('taxId')} />

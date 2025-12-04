@@ -253,9 +253,9 @@ const OnboardingWizard = () => {
 
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             {steps.map((step, index) => (
-              <div key={step.number} className="flex items-center flex-1">
+              <div key={step.number} className="flex items-center">
                 {/* Step Circle */}
                 <div className="flex flex-col items-center">
                   <div
@@ -269,14 +269,14 @@ const OnboardingWizard = () => {
                   >
                     {currentStep > step.number ? '✓' : step.icon}
                   </div>
-                  <div className="mt-2 text-xs font-medium text-gray-600 hidden md:block">
+                  <div className="mt-2 text-xs font-medium text-gray-600 hidden md:block text-center">
                     {step.title}
                   </div>
                 </div>
                 
                 {/* Connector Line */}
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-1 mx-2 ${
+                  <div className={`w-24 h-1 mx-2 ${
                     currentStep > step.number ? 'bg-green-500' : 'bg-gray-200'
                   }`} />
                 )}

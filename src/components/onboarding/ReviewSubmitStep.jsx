@@ -1,15 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { formatPaymentMethod } from '../../services/onboardingService';
 import { useTranslations } from '../../hooks/useTranslations';
 
 const ReviewSubmitStep = ({ data, onValidationChange }) => {
   const { t } = useTranslations();
   const { businessInfo, addressInfo, taxInfo, paymentInfo } = data;
+  const [consentChecked, setConsentChecked] = useState(false);
 
-  // Always mark as valid since this is just a review step
+  // Update validation based on consent checkbox
   useEffect(() => {
-    onValidationChange(true);
-  }, []); // Run once on mount
+    onValidationChange(consentChecked);
+  }, [consentChecked, onValidationChange]);
 
   return (
     <div className="space-y-6">
@@ -31,6 +32,10 @@ const ReviewSubmitStep = ({ data, onValidationChange }) => {
           {t('onboarding.businessInfoTitle')}
         </h3>
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <dt className="text-sm font-medium text-gray-500">{t('onboarding.companyLegalName')}</dt>
+            <dd className="mt-1 text-sm text-gray-900">{businessInfo?.companyLegalName}</dd>
+          </div>
           <div>
             <dt className="text-sm font-medium text-gray-500">{t('onboarding.brandName')}</dt>
             <dd className="mt-1 text-sm text-gray-900">{businessInfo?.name || businessInfo?.brandName}</dd>
@@ -167,10 +172,11 @@ const ReviewSubmitStep = ({ data, onValidationChange }) => {
           <input
             type="checkbox"
             id="terms"
-            className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-            defaultChecked
+            className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded cursor-pointer"
+            checked={consentChecked}
+            onChange={(e) => setConsentChecked(e.target.checked)}
           />
-          <label htmlFor="terms" className="ml-3 text-sm text-gray-700">
+          <label htmlFor="terms" className="ml-3 text-sm text-gray-700 cursor-pointer">
             {t('onboarding.consentConfirmation')}
           </label>
         </div>
