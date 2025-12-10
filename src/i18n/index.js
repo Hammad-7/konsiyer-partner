@@ -96,9 +96,9 @@ const resources = {
       // Shop Connection
       shop: {
         connectTitle: 'Mağazanızı bağlayın',
-        shopifyStore: 'Shopify Mağazası',
+        shopifyStore: 'Shopify',
         shopifyDescription: 'Shopify mağazanızı otomatik olarak bağlayın.',
-        ikasStore: 'Ikas Mağazası',
+        ikasStore: 'Ikas',
         ikasDescription: 'Ikas mağazanızı otomatik olarak bağlayın.',
         otherShops: 'Diğer Mağazalar',
         otherShopsDescription: 'XML veya CSV dosyaları kullanarak diğer mağaza türlerini bağlayın.',
