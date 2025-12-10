@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTranslations } from '../hooks/useTranslations';
 import { Badge } from '@/components/ui/badge';
 import { Store, CheckCircle, Loader2, Mail } from 'lucide-react';
+import GtmStatusBanner from './shared/GtmStatusBanner';
 
 /**
  * ProcessingDashboard Component
@@ -103,6 +104,17 @@ const ProcessingDashboard = () => {
           {t('processing.dataProcessing')}
         </motion.p>
       </motion.div>
+
+      {/* GTM Status Banner for Ikas stores */}
+      {connectedShops && connectedShops.length > 0 && connectedShops.some(s => s.shopType === 'ikas') && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <GtmStatusBanner shop={connectedShops.find(s => s.shopType === 'ikas')} />
+        </motion.div>
+      )}
 
       {/* Connected Shops */}
       <motion.div

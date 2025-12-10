@@ -1728,3 +1728,253 @@ def track_checkout(req: https_fn.Request) -> https_fn.Response:
 			status=500,
 			headers=headers
 		)
+
+
+@https_fn.on_request()
+def verify_gtm(req: https_fn.Request) -> https_fn.Response:
+	"""
+	Verify if GTM tag is installed on a given store URL.
+	
+	Expected JSON payload:
+	{
+		"storeUrl": "https://example.myikas.com"
+	}
+	
+	Returns:
+	{
+		"success": true,
+		"gtmInstalled": true/false,
+		"gtmId": "GTM-PK98KRR2" (if found)
+	}
+	"""
+	# CORS headers
+	headers = {
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Methods": "POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Content-Type": "application/json"
+	}
+	
+	# Handle preflight OPTIONS request
+	if req.method == "OPTIONS":
+		return https_fn.Response("", status=204, headers=headers)
+	
+	# Only allow POST
+	if req.method != "POST":
+		return https_fn.Response(
+			json.dumps({"error": "Method not allowed"}),
+			status=405,
+			headers=headers
+		)
+	
+	logger = logging.getLogger("verify_gtm")
+	
+	try:
+		# Parse request body
+		data = req.get_json(silent=True)
+		if not data:
+			return https_fn.Response(
+				json.dumps({"error": "Invalid JSON payload"}),
+				status=400,
+				headers=headers
+			)
+		
+		store_url = data.get("storeUrl", "").strip()
+		if not store_url:
+			return https_fn.Response(
+				json.dumps({"error": "storeUrl is required"}),
+				status=400,
+				headers=headers
+			)
+		
+		# Ensure URL has protocol
+		if not store_url.startswith("http"):
+			store_url = f"https://{store_url}"
+		
+		logger.info(f"Verifying GTM installation for: {store_url}")
+		
+		# Fetch the store's homepage
+		try:
+			response = requests.get(
+				store_url,
+				timeout=10,
+				headers={
+					"User-Agent": "Mozilla/5.0 (compatible; KonsiyerBot/1.0; +https://konsiyer.com)"
+				}
+			)
+			
+			if response.status_code != 200:
+				logger.warning(f"Failed to fetch store URL: HTTP {response.status_code}")
+				return https_fn.Response(
+					json.dumps({
+						"success": False,
+						"error": f"Unable to access store (HTTP {response.status_code})"
+					}),
+					status=200,
+					headers=headers
+				)
+			
+			html_content = response.text
+			
+			# Check for GTM-PK98KRR2 in the HTML
+			gtm_id = "GTM-PK98KRR2"
+			gtm_installed = gtm_id in html_content
+			
+			logger.info(f"GTM verification result for {store_url}: {gtm_installed}")
+			
+			return https_fn.Response(
+				json.dumps({
+					"success": True,
+					"gtmInstalled": gtm_installed,
+					"gtmId": gtm_id if gtm_installed else None,
+					"storeUrl": store_url
+				}),
+				status=200,
+				headers=headers
+			)
+			
+		except requests.RequestException as e:
+			logger.error(f"Request error fetching store URL: {str(e)}")
+			return https_fn.Response(
+				json.dumps({
+					"success": False,
+					"error": f"Unable to connect to store: {str(e)}"
+				}),
+				status=200,
+				headers=headers
+			)
+	
+	except Exception as e:
+		logger.exception("Unexpected error in verify_gtm")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+			status=500,
+			headers=headers
+		)
+
+
+@https_fn.on_request()
+def update_gtm_status(req: https_fn.Request) -> https_fn.Response:
+	"""
+	Update GTM verification status for a user's Ikas shop.
+	
+	Expected JSON payload:
+	{
+		"idToken": "firebase_id_token",
+		"shopId": "shop_document_id",
+		"gtmVerified": true/false
+	}
+	
+	Returns:
+	{
+		"success": true,
+		"message": "GTM status updated"
+	}
+	"""
+	# CORS headers
+	headers = {
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Methods": "POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Content-Type": "application/json"
+	}
+	
+	# Handle preflight OPTIONS request
+	if req.method == "OPTIONS":
+		return https_fn.Response("", status=204, headers=headers)
+	
+	# Only allow POST
+	if req.method != "POST":
+		return https_fn.Response(
+			json.dumps({"error": "Method not allowed"}),
+			status=405,
+			headers=headers
+		)
+	
+	logger = logging.getLogger("update_gtm_status")
+	
+	try:
+		# Parse request body
+		data = req.get_json(silent=True)
+		if not data:
+			return https_fn.Response(
+				json.dumps({"error": "Invalid JSON payload"}),
+				status=400,
+				headers=headers
+			)
+		
+		id_token = data.get("idToken") or data.get("id_token")
+		shop_id = data.get("shopId", "").strip()
+		gtm_verified = data.get("gtmVerified")
+		
+		if not id_token:
+			return https_fn.Response(
+				json.dumps({"error": "idToken is required"}),
+				status=400,
+				headers=headers
+			)
+		
+		if not shop_id:
+			return https_fn.Response(
+				json.dumps({"error": "shopId is required"}),
+				status=400,
+				headers=headers
+			)
+		
+		if gtm_verified is None:
+			return https_fn.Response(
+				json.dumps({"error": "gtmVerified is required"}),
+				status=400,
+				headers=headers
+			)
+		
+		# Verify Firebase ID token
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception as e:
+			logger.exception("Failed to verify id token")
+			return https_fn.Response(
+				json.dumps({"error": "Invalid ID token"}),
+				status=401,
+				headers=headers
+			)
+		
+		# Update the shop document
+		db = firestore.client()
+		shop_ref = db.collection("users").document(uid).collection("shops").document(shop_id)
+		shop_doc = shop_ref.get()
+		
+		if not shop_doc.exists:
+			return https_fn.Response(
+				json.dumps({"error": "Shop not found"}),
+				status=404,
+				headers=headers
+			)
+		
+		# Update GTM status
+		shop_ref.update({
+			"gtmVerified": gtm_verified,
+			"gtmVerifiedAt": firestore.SERVER_TIMESTAMP if gtm_verified else None,
+			"lastUpdated": firestore.SERVER_TIMESTAMP
+		})
+		
+		logger.info(f"Updated GTM status for shop {shop_id}, user {uid}: {gtm_verified}")
+		
+		return https_fn.Response(
+			json.dumps({
+				"success": True,
+				"message": "GTM status updated successfully",
+				"gtmVerified": gtm_verified
+			}),
+			status=200,
+			headers=headers
+		)
+	
+	except Exception as e:
+		logger.exception("Unexpected error in update_gtm_status")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+			status=500,
+			headers=headers
+		)

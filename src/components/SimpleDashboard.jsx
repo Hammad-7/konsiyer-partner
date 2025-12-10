@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useShop } from '../contexts/ShopContext';
 import { useTranslations } from '../hooks/useTranslations';
 import LoadingSpinner from './LoadingSpinner';
+import GtmStatusBanner from './shared/GtmStatusBanner';
 
 const SimpleDashboard = () => {
   const { t } = useTranslations();
@@ -12,6 +13,8 @@ const SimpleDashboard = () => {
   const navigate = useNavigate();
   const [finalizing, setFinalizing] = useState(false);
   const [finalizationError, setFinalizationError] = useState('');
+
+  console.log("SimpleDashboard - hasConnectedShops:", hasConnectedShops);
 
   // Check for URL parameters (for Shopify callback)
   useEffect(() => {
@@ -92,11 +95,21 @@ const SimpleDashboard = () => {
     );
   }
 
+  console.log("connectedShops && connectedShops.length > 0 && connectedShops.some(shop => shop.shopType === 'ikas')", connectedShops && connectedShops.length > 0 && connectedShops.some(shop => shop.shopType === 'ikas'))
+
   // Simple dashboard showing shop connection status
   if (hasConnectedShops) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
+          
+          {/* GTM Status Banner for Ikas stores */}
+          {connectedShops && connectedShops.length > 0 && connectedShops.some(shop => shop.shopType === 'ikas') && (
+            <GtmStatusBanner 
+              shop={connectedShops.find(shop => shop.shopType === 'ikas')} 
+            />
+          )}
+
           <div className="bg-white shadow-xl rounded-2xl p-8 text-center">
             {/* Success Icon */}
             <div className="mx-auto h-20 w-20 bg-green-600 rounded-2xl flex items-center justify-center mb-6">

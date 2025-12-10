@@ -20,6 +20,7 @@ import KPICard from './shared/KPICard';
 import RevenueChart from './shared/RevenueChart';
 import InvoiceCard from './shared/InvoiceCard';
 import { MotionContainer, MotionItem } from './shared/MotionCard';
+import GtmStatusBanner from './shared/GtmStatusBanner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,8 @@ const Dashboard = () => {
   const [affiliateStats, setAffiliateStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState('');
+
+  console.log("Dashboard - hasConnectedShops:", hasConnectedShops);
 
   // Check for URL parameters (for Shopify callback)
   useEffect(() => {
@@ -173,6 +176,9 @@ const Dashboard = () => {
   // If user has connected shops, show the main dashboard
   if (hasConnectedShops) {
     const recentInvoices = mockInvoices.slice(0, 3);
+    const ikasShop = connectedShops?.find(shop => shop.shopType === 'ikas');
+
+    console.log("ikasShop:", ikasShop);
 
     return (
       <div className="max-w-7xl mx-auto space-y-6">
@@ -189,6 +195,17 @@ const Dashboard = () => {
               {t('dashboard.todayOverview')}
             </p>
           </motion.div>
+
+          {/* GTM Status Banner for Ikas stores */}
+          {ikasShop && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <GtmStatusBanner shop={ikasShop} />
+            </motion.div>
+          )}
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

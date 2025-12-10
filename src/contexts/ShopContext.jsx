@@ -47,14 +47,36 @@ export const ShopProvider = ({ children }) => {
         
         if (userData.verified && userData.shop) {
           console.log('✅ Found verified shop in main document:', userData.shop);
-          shops.push({
-            id: userData.shop,
-            shopName: userData.shop,
-            shopType: 'shopify',
-            verified: true,
-            connectedAt: userData.lastUpdated,
-            source: 'main-document'
-          });
+          // Try to resolve shopType from the shops subcollection if present
+          try {
+            const mainShopRef = doc(db, 'users', user.uid, 'shops', userData.shop);
+            const mainShopDoc = await getDoc(mainShopRef);
+            const mainShopData = mainShopDoc.exists() ? mainShopDoc.data() : null;
+
+            const resolvedShopType = (mainShopData && mainShopData.shopType)
+              ? mainShopData.shopType
+              : (userData.shopType || 'shopify');
+
+            shops.push({
+              id: userData.shop,
+              shopName: userData.shop,
+              shopType: resolvedShopType,
+              gtmVerified: mainShopData && Object.prototype.hasOwnProperty.call(mainShopData, 'gtmVerified') ? mainShopData.gtmVerified : (userData.gtmVerified ?? null),
+              verified: true,
+              connectedAt: mainShopData?.connectedAt || userData.lastUpdated,
+              source: 'main-document'
+            });
+          } catch (resolveErr) {
+            console.error('Error resolving main shop document for shopType:', resolveErr);
+            shops.push({
+              id: userData.shop,
+              shopName: userData.shop,
+              shopType: userData.shopType || 'shopify',
+              verified: true,
+              connectedAt: userData.lastUpdated,
+              source: 'main-document'
+            });
+          }
         } else {
           console.log('❌ Main document exists but no verified shop:', { verified: userData.verified, shop: userData.shop });
         }
@@ -81,6 +103,7 @@ export const ShopProvider = ({ children }) => {
                 id: doc.id,
                 shopName: doc.id,
                 shopType: data.shopType || 'shopify',
+                gtmVerified: Object.prototype.hasOwnProperty.call(data, 'gtmVerified') ? data.gtmVerified : null,
                 verified: true,
                 connectedAt: data.verified_at || data.connectedAt,
                 source: 'subcollection'

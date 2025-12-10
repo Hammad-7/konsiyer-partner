@@ -4,6 +4,14 @@ import { useTranslations } from '../../hooks/useTranslations';
 import { useShop } from '../../contexts/ShopContext';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../LoadingSpinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 
 const IkasConnectPage = () => {
   const navigate = useNavigate();
@@ -16,6 +24,10 @@ const IkasConnectPage = () => {
   const [clientSecret, setClientSecret] = useState('');
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
+  const [gtmVerified, setGtmVerified] = useState(null);
+  const [gtmVerifying, setGtmVerifying] = useState(false);
+  const [gtmDialogOpen, setGtmDialogOpen] = useState(false);
+  const [gtmCopied, setGtmCopied] = useState(false);
 
   const validateField = (field, value) => { 
     const errors = { ...validationErrors };
@@ -74,6 +86,30 @@ const IkasConnectPage = () => {
       );
       
       if (result.success) {
+        // Save GTM status if verified
+        if (gtmVerified === true && result.shopId) {
+          try {
+            const idToken = await user.getIdToken();
+            const functionsUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || 
+              'https://us-central1-sharp-footing-314502.cloudfunctions.net';
+            
+            await fetch(`${functionsUrl}/update_gtm_status`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                idToken: idToken,
+                shopId: result.shopId,
+                gtmVerified: true
+              })
+            });
+          } catch (saveError) {
+            console.error('Error saving GTM status:', saveError);
+            // Don't fail the connection if saving fails
+          }
+        }
+        
         // Navigate to dashboard on successful connection
         navigate('/dashboard');
       }
@@ -86,6 +122,72 @@ const IkasConnectPage = () => {
 
   const handleBackToOptions = () => {
     navigate('/connect');
+  };
+
+  const handleCopyGtmId = async () => {
+    try {
+      await navigator.clipboard.writeText('GTM-PK98KRR2');
+      setGtmCopied(true);
+      setTimeout(() => setGtmCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy GTM ID:', err);
+    }
+  };
+
+  const verifyGtmInstallation = async () => {
+    if (!shopUrl.trim()) {
+      setError(t('shop.pleaseEnterAllFields'));
+      return;
+    }
+
+    setGtmVerifying(true);
+    setError(''); // Clear any previous errors
+    
+    try {
+      // Construct the store URL
+      let storeUrl = shopUrl.trim();
+      if (!storeUrl.startsWith('http')) {
+        storeUrl = 'https://' + storeUrl;
+      }
+
+      // Call backend endpoint to verify GTM installation
+      const functionsUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || 
+        'https://us-central1-sharp-footing-314502.cloudfunctions.net';
+      
+      const response = await fetch(`${functionsUrl}/verify_gtm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storeUrl: storeUrl
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.gtmInstalled !== undefined) {
+        setGtmVerified(data.gtmInstalled);
+        
+        if (!data.gtmInstalled) {
+          console.log('GTM tag not found on store. Please ensure GTM-PK98KRR2 is installed.');
+        }
+      } else if (data.error) {
+        // Verification failed but don't block the user
+        console.warn('GTM verification failed:', data.error);
+        setGtmVerified(null);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+      
+    } catch (err) {
+      console.error('Error verifying GTM:', err);
+      // Don't block the user - just show that verification failed
+      setGtmVerified(null);
+      console.warn('Could not verify GTM automatically. Please ensure GTM-PK98KRR2 is installed on your store.');
+    } finally {
+      setGtmVerifying(false);
+    }
   };
 
   const isFormValid = shopUrl.trim() && clientId.trim() && clientSecret.trim() && Object.keys(validationErrors).length === 0;
@@ -248,6 +350,173 @@ const IkasConnectPage = () => {
                   {validationErrors.clientSecret}
                 </p>
               )}
+            </div>
+
+            {/* GTM Setup - Mandatory */}
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('shop.gtmContainerId')} <span className="text-red-500">*</span>
+                </label>
+                <Dialog open={gtmDialogOpen} onOpenChange={setGtmDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-xs text-purple-600 hover:text-purple-800 underline"
+                    >
+                      {t('shop.viewTutorial')}
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">
+                        {t('shop.gtmTutorialTitle')}
+                      </DialogTitle>
+                      <DialogDescription className="text-base">
+                        {t('shop.gtmSetupSubtitle')}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="mt-6 space-y-6">
+                      <ol className="space-y-6">
+                        <li className="flex">
+                          <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold mr-4">
+                            1
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-gray-900 font-medium">{t('shop.gtmStep1')}</p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex">
+                          <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold mr-4">
+                            2
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-gray-900 font-medium">{t('shop.gtmStep2')}</p>
+                          </div>
+                        </li>
+                        
+                        <li className="flex">
+                          <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold mr-4">
+                            3
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-gray-900 font-medium mb-4">{t('shop.gtmStep3')}</p>
+                            
+                            <div className="space-y-4">
+                              <img 
+                                src="https://support.ikas.com/hs-fs/hubfs/Bildschirm%C2%ADfoto%202025-08-01%20um%2015-10-26-png.png?width=670&height=268&name=Bildschirm%C2%ADfoto%202025-08-01%20um%2015-10-26-png.png" 
+                                alt="GTM Step 1"
+                                className="w-full rounded-lg border border-gray-200"
+                              />
+                              <img 
+                                src="https://support.ikas.com/hs-fs/hubfs/Bildschirm%C2%ADfoto%202025-08-01%20um%2015-11-23-png-1.png?width=2880&height=952&name=Bildschirm%C2%ADfoto%202025-08-01%20um%2015-11-23-png-1.png" 
+                                alt="GTM Step 2"
+                                className="w-full rounded-lg border border-gray-200"
+                              />
+                              <img 
+                                src="https://support.ikas.com/hs-fs/hubfs/Bildschirm%C2%ADfoto%202025-08-01%20um%2015-13-55-png.png?width=2880&height=608&name=Bildschirm%C2%ADfoto%202025-08-01%20um%2015-13-55-png.png" 
+                                alt="GTM Step 3"
+                                className="w-full rounded-lg border border-gray-200"
+                              />
+                            </div>
+                          </div>
+                        </li>
+                      </ol>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex">
+                          <svg className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          <div>
+                            <h4 className="font-semibold text-blue-900 mb-1">{t('shop.gtmImportantNote')}</h4>
+                            <p className="text-sm text-blue-800">{t('shop.gtmNoteText')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 font-mono text-sm text-gray-700">
+                  GTM-PK98KRR2
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyGtmId}
+                  className="px-3 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-1.5"
+                >
+                  {gtmCopied ? (
+                    <>
+                      <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+                {shopUrl.trim() && (
+                  <button
+                    type="button"
+                    onClick={verifyGtmInstallation}
+                    disabled={gtmVerifying}
+                    className="px-3 py-2.5 text-sm text-purple-600 hover:text-purple-800 disabled:text-gray-400 transition-colors duration-200"
+                  >
+                    {gtmVerifying ? (
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
+              
+              {gtmVerified !== null && (
+                <p className={`mt-2 text-xs flex items-center ${
+                  gtmVerified === true ? 'text-green-600' : gtmVerified === false ? 'text-yellow-600' : 'text-gray-600'
+                }`}>
+                  {gtmVerified === true ? (
+                    <>
+                      <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      {t('shop.gtmVerified')}
+                    </>
+                  ) : gtmVerified === false ? (
+                    <>
+                      <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {t('shop.gtmNotVerified')}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      {t('shop.gtmVerificationFailed')}
+                    </>
+                  )}
+                </p>
+              )}
+              
+              <p className="mt-2 text-xs text-gray-500">
+                {t('shop.gtmNoteText')}
+              </p>
             </div>
 
             {/* Error Message */}
