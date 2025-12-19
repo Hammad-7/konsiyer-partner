@@ -21,6 +21,8 @@ import RevenueChart from './shared/RevenueChart';
 import InvoiceCard from './shared/InvoiceCard';
 import { MotionContainer, MotionItem } from './shared/MotionCard';
 import GtmStatusBanner from './shared/GtmStatusBanner';
+import ShopifyOnboardingFlow from './onboarding/ShopifyOnboardingFlow';
+import ShopifyDashboard from './ShopifyDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +39,9 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRef } from 'react';
+
+const CHECK_SYNC_STATUS_URL = 'https://check-shop-sync-status-kh3i5xlqba-uc.a.run.app';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -48,6 +53,11 @@ const Dashboard = () => {
   const [affiliateStats, setAffiliateStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState('');
+  const [shopifyOnboardingStatus, setShopifyOnboardingStatus] = useState(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
+  
+  // Ref to prevent duplicate finalization calls (React Strict Mode double-invocation)
+  const finalizationInProgress = useRef(false);
 
   console.log("Dashboard - hasConnectedShops:", hasConnectedShops);
 
@@ -57,25 +67,81 @@ const Dashboard = () => {
     const shop = urlParams.get('shop');
     const state = urlParams.get('state');
     
-    if (shop && state && user) {
+    if (shop && state && user && !finalizationInProgress.current) {
+      finalizationInProgress.current = true;
+      
       const handleFinalization = async () => {
         try {
           setFinalizing(true);
           setFinalizationError('');
           await finalizeShopifyConnection(shop, state);
+          
+          // Clean up URL immediately after successful finalization
           window.history.replaceState({}, document.title, '/dashboard');
-          toast.success('Shop connected successfully!');
+          // toast.success('Shop connected successfully!');
+          
+          // After finalizing Shopify connection, check onboarding status
+          await checkShopifyOnboardingStatus(shop);
         } catch (error) {
           console.error('❌ Error finalizing Shopify connection:', error);
-          setFinalizationError(error.message || 'Failed to finalize connection');
-          toast.error('Failed to connect shop');
+          
+          // Don't show error if it's "Invalid or expired state" - this means it already succeeded
+          if (error.message?.includes('Invalid or expired state')) {
+            // State already consumed - connection likely succeeded, check status
+            console.log('ℹ️ State already consumed, checking connection status...');
+            window.history.replaceState({}, document.title, '/dashboard');
+            await checkShopifyOnboardingStatus(shop);
+          } else {
+            setFinalizationError(error.message || 'Failed to finalize connection');
+            toast.error('Failed to connect shop');
+          }
         } finally {
           setFinalizing(false);
         }
       };
+      
       handleFinalization();
     }
   }, [user, finalizeShopifyConnection]);
+
+  // Check Shopify onboarding status for Shopify shops
+  const checkShopifyOnboardingStatus = async (shopDomain) => {
+    try {
+      setCheckingOnboarding(true);
+      const response = await fetch(
+        `${CHECK_SYNC_STATUS_URL}?shop_domain=${encodeURIComponent(shopDomain)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setShopifyOnboardingStatus(data);
+        console.log('Shopify onboarding status:', data);
+      }
+    } catch (error) {
+      console.error('Error checking Shopify onboarding status:', error);
+    } finally {
+      setCheckingOnboarding(false);
+    }
+  };
+
+  // Check onboarding status for Shopify shops on mount
+  useEffect(() => {
+    if (hasConnectedShops && connectedShops) {
+      const shopifyShop = connectedShops.find(shop => shop.shopType === 'shopify');
+      if (shopifyShop) {
+        const shopDomain = shopifyShop.shopName || shopifyShop.shop;
+        if (shopDomain) {
+          checkShopifyOnboardingStatus(shopDomain);
+        }
+      }
+    }
+  }, [hasConnectedShops, connectedShops]);
 
   // Fetch affiliate stats when user has connected shops
   useEffect(() => {
@@ -177,9 +243,52 @@ const Dashboard = () => {
   if (hasConnectedShops) {
     const recentInvoices = mockInvoices.slice(0, 3);
     const ikasShop = connectedShops?.find(shop => shop.shopType === 'ikas');
+    const shopifyShop = connectedShops?.find(shop => shop.shopType === 'shopify');
 
     console.log("ikasShop:", ikasShop);
+    console.log("shopifyShop:", shopifyShop);
+    console.log("shopifyOnboardingStatus:", shopifyOnboardingStatus);
 
+    // Handle Shopify shops separately
+    if (shopifyShop) {
+      const shopDomain = shopifyShop.shopName || shopifyShop.shop;
+
+      // Still loading onboarding status
+      if (checkingOnboarding || shopifyOnboardingStatus === null) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+            <LoadingSpinner 
+              size="xl" 
+              text="Loading dashboard..." 
+            />
+          </div>
+        );
+      }
+
+      // Shop hasn't been synced yet - show onboarding flow
+      if (!shopifyOnboardingStatus.has_synced) {
+        return (
+          <div className="max-w-7xl mx-auto">
+            <ShopifyOnboardingFlow
+              shopDomain={shopDomain}
+              onComplete={() => {
+                // Refresh the onboarding status after completion
+                checkShopifyOnboardingStatus(shopDomain);
+              }}
+            />
+          </div>
+        );
+      }
+
+      // Shop has been synced - show Shopify dashboard
+      return (
+        <div className="max-w-7xl mx-auto">
+          <ShopifyDashboard shopDomain={shopDomain} />
+        </div>
+      );
+    }
+
+    // For Ikas shops or other shop types, show the full merchant dashboard
     return (
       <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}

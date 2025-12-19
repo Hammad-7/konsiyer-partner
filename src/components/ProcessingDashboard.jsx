@@ -184,10 +184,10 @@ const ProcessingDashboard = () => {
                                 <p className="text-sm text-amber-900">
                                   {t('processing.xmlContactMessage')}{' '}
                                   <a
-                                    href="mailto:orkan@konsiyer.com"
+                                    href="mailto:info@alfreya.com"
                                     className="font-medium text-amber-700 hover:text-amber-800 underline"
                                   >
-                                    orkan@konsiyer.com
+                                    info@alfreya.com
                                   </a>
                                 </p>
                               </div>
@@ -265,10 +265,10 @@ const ProcessingDashboard = () => {
         <p className="text-sm text-gray-500">
           {t('processing.needAssistance')}{' '}
           <a
-            href="mailto:orkan@konsiyer.com"
+            href="mailto:info@alfreya.com"
             className="text-indigo-600 hover:text-indigo-700 font-medium"
           >
-            orkan@konsiyer.com
+            info@alfreya.com
           </a>
         </p>
       </motion.div>

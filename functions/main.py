@@ -183,7 +183,7 @@ def _add_cors_headers(response_headers, request=None):
 def _handle_preflight(req):
 	"""Handle CORS preflight requests."""
 	if req.method == 'OPTIONS':
-		headers = _add_cors_headers({})
+		headers = _add_cors_headers({}, req)
 		return https_fn.Response("", status=200, headers=headers)
 	return None
 
@@ -202,6 +202,7 @@ def _add_cors_headers_with_credentials(response_headers, request):
 	
 	# List of allowed origins
 	allowed_origins = [
+		"https://dev-alfreya.ikas.shop",
 		"https://dev-konsiyer.ikas.shop",
 		"http://localhost:5173",
 		"http://localhost:3000",
@@ -298,6 +299,7 @@ def _is_valid_return_url(url: str) -> bool:
 			r'^.*\.web\.app$',
 			r'^.*\.firebaseapp\.com$',
 			r'^.*\.konsiyer\.com$',
+			r'^.*\.alfreya\.com$',
 			# Add your production domain patterns here
 		]
 		
@@ -1575,7 +1577,7 @@ def track_checkout(req: https_fn.Request) -> https_fn.Response:
 		"page": "https://shop.ikas.shop/checkout?id=xxx&step=success",
 		"ecommerce": {
 			"transaction_id": "1011",
-			"affiliation": "dev-konsiyer.ikas.shop",
+			"affiliation": "dev-alfreya.ikas.shop",
 			"value": "18",
 			"tax": "3",
 			"shipping": "0",
@@ -1799,7 +1801,7 @@ def verify_gtm(req: https_fn.Request) -> https_fn.Response:
 				store_url,
 				timeout=10,
 				headers={
-					"User-Agent": "Mozilla/5.0 (compatible; KonsiyerBot/1.0; +https://konsiyer.com)"
+					"User-Agent": "Mozilla/5.0 (compatible; AlfreyaBot/1.0; +https://alfreya.com)"
 				}
 			)
 			
@@ -1973,6 +1975,638 @@ def update_gtm_status(req: https_fn.Request) -> https_fn.Response:
 	
 	except Exception as e:
 		logger.exception("Unexpected error in update_gtm_status")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+			status=500,
+			headers=headers
+		)
+
+
+# ============================================================================
+# SHOPIFY ONBOARDING & PROCESSING ENDPOINTS
+# ============================================================================
+
+def normalize_shop_domain(shop_domain: str) -> str:
+	"""Normalize shop domain to standard format."""
+	if not shop_domain:
+		return ""
+	shop_domain = shop_domain.lower().strip()
+	# Remove https:// or http:// if present
+	shop_domain = shop_domain.replace("https://", "").replace("http://", "")
+	# Remove trailing slash if present
+	shop_domain = shop_domain.rstrip("/")
+	return shop_domain
+
+
+def generate_shop_id(shop_domain: str) -> str:
+	"""
+	Generate a unique shop ID by hashing the shop domain.
+	
+	Args:
+		shop_domain: The Shopify shop domain (e.g., "example.myshopify.com")
+	
+	Returns:
+		A hashed shop ID string
+	"""
+	# Normalize the shop domain first
+	normalized_domain = normalize_shop_domain(shop_domain)
+	
+	# Create SHA256 hash of the domain
+	hash_object = hashlib.sha256(normalized_domain.encode())
+	
+	# Return first 16 characters of the hex digest for a shorter ID
+	return hash_object.hexdigest()[:16]
+
+
+@https_fn.on_request()
+def check_shop_sync_status(req: https_fn.Request) -> https_fn.Response:
+	"""Check if shop has already synced products (from konsiyer-sync project).
+	
+	This checks the external Firebase project to see if the shop is onboarded.
+	"""
+	# Handle CORS preflight requests
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"}, req)
+
+	try:
+		if req.method != "GET":
+			return https_fn.Response(
+				json.dumps({"error": "Method Not Allowed"}),
+				status=405,
+				headers=headers
+			)
+
+		# Get shop_domain from query parameters
+		query_params = _get_request_query(req)
+		shop_domain = query_params.get("shop_domain")
+
+		if not shop_domain:
+			return https_fn.Response(
+				json.dumps({
+					"error": "shop_domain parameter is required",
+					"usage": "GET /check_shop_sync_status?shop_domain=<domain>"
+				}),
+				status=400,
+				headers=headers
+			)
+
+		# Normalize shop domain
+		normalized_shop_domain = normalize_shop_domain(shop_domain)
+		shop_id = generate_shop_id(normalized_shop_domain)
+
+		# Connect to external Firebase project
+		external_db = _get_external_firebase_client()
+
+		# Check if shop has any processing status or shop document
+		processing_doc = external_db.collection('processing_status').document(shop_id).get()
+		shop_doc = external_db.collection('shops').document(shop_id).get()
+
+		# Prioritize 'connected' field in shops collection
+		is_connected = False
+		has_synced = False
+		is_processing = False
+
+		if shop_doc.exists:
+			shop_data = shop_doc.to_dict()
+			has_synced = True
+			logger.info(f"Shop {shop_id} exists - connected field: {shop_data.get('connected')}")
+
+			# Get embedding status to help determine connection state
+			embedding_status = shop_data.get('embeddingStatus', {})
+			embedding_status_value = embedding_status.get('status', 'unknown')
+			logger.info(f"Shop {shop_id} embedding status: {embedding_status_value}")
+
+			# Check if currently processing
+			if processing_doc.exists:
+				processing_data = processing_doc.to_dict()
+				current_status = processing_data.get('simple_status', 'unknown')
+				logger.info(f"Shop {shop_id} processing status: {current_status}")
+
+				if current_status == 'processing':
+					is_processing = True
+					is_connected = False  # Don't show as connected while processing
+				elif current_status == 'completed':
+					is_processing = False
+					# For completed status, always use shop's connected field
+					connected_field = shop_data.get('connected')
+					if connected_field is not None:
+						is_connected = connected_field
+					else:
+						# Fallback: if embeddings completed or failed, consider connected
+						is_connected = embedding_status_value in ['completed', 'failed']
+				else:  # error state
+					is_processing = False
+					# For error state, check if shop was previously connected
+					connected_field = shop_data.get('connected')
+					if connected_field is not None:
+						is_connected = connected_field
+					else:
+						is_connected = embedding_status_value in ['completed', 'failed']
+			else:
+				# No current processing status, check if shop is connected
+				is_processing = False
+				connected_field = shop_data.get('connected')
+				if connected_field is not None:
+					is_connected = connected_field
+				else:
+					is_connected = embedding_status_value in ['completed', 'failed']
+
+		elif processing_doc.exists:
+			# Fallback to processing status if shop document doesn't exist
+			has_synced = True
+			processing_data = processing_doc.to_dict()
+			current_status = processing_data.get('simple_status', 'unknown')
+
+			if current_status == 'processing':
+				is_processing = True
+				is_connected = False
+			else:
+				is_processing = False
+				is_connected = False
+
+		response_data = {
+			"shop_domain": normalized_shop_domain,
+			"shop_id": shop_id,
+			"has_synced": has_synced,
+			"connected": is_connected,
+			"is_processing": is_processing,
+			"redirect_to_dashboard": has_synced
+		}
+
+		logger.info(f"Sync status check for {shop_id}: has_synced={has_synced}, connected={is_connected}, is_processing={is_processing}")
+
+		return https_fn.Response(
+			json.dumps(response_data),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in check_shop_sync_status")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+			status=500,
+			headers=headers
+		)
+
+
+@https_fn.on_request()
+def get_processing_status(req: https_fn.Request) -> https_fn.Response:
+	"""Get processing status for dashboard (from konsiyer-sync project).
+	
+	This retrieves the processing status from the external Firebase project.
+	"""
+	# Handle CORS preflight requests
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"}, req)
+
+	try:
+		if req.method != "GET":
+			return https_fn.Response(
+				json.dumps({"error": "Method Not Allowed"}),
+				status=405,
+				headers=headers
+			)
+
+		# Get shop_id from query parameters
+		query_params = _get_request_query(req)
+		shop_id = query_params.get("shop_id")
+		shop_domain = query_params.get("shop_domain")
+
+		# Determine shop_id if shop_domain provided
+		if not shop_id and shop_domain:
+			shop_id = generate_shop_id(normalize_shop_domain(shop_domain))
+
+		if not shop_id:
+			return https_fn.Response(
+				json.dumps({
+					"error": "shop_id or shop_domain parameter is required",
+					"usage": "GET /get_processing_status?shop_id=<shop_id> OR ?shop_domain=<domain>"
+				}),
+				status=400,
+				headers=headers
+			)
+
+		# Connect to external Firebase project
+		external_db = _get_external_firebase_client()
+
+		# Get processing status document
+		processing_doc = external_db.collection('processing_status').document(shop_id).get()
+
+		if not processing_doc.exists:
+			return https_fn.Response(
+				json.dumps({
+					"error": "Processing status not found",
+					"shop_id": shop_id,
+					"suggestion": "No processing job found for this shop"
+				}),
+				status=404,
+				headers=headers
+			)
+
+		processing_data = processing_doc.to_dict()
+
+		# Get shop document for additional info
+		shop_doc = external_db.collection('shops').document(shop_id).get()
+		shop_data = shop_doc.to_dict() if shop_doc.exists else {}
+
+		# Compile comprehensive status
+		response_data = {
+			"shop_id": shop_id,
+			"shop_domain": processing_data.get('shop_domain'),
+			"status": processing_data.get('status', 'unknown'),
+			"stage": processing_data.get('stage', 'unknown'),
+			"progress": processing_data.get('progress', 0),
+			"started_at": processing_data.get('started_at'),
+			"completed_at": processing_data.get('completed_at'),
+			"error": processing_data.get('error'),
+			"error_at": processing_data.get('error_at'),
+			"steps": processing_data.get('steps', {}),
+			"shop_info": {
+				"shop_name": shop_data.get('shopName'),
+				"last_updated": shop_data.get('lastUpdated'),
+				"upload_results": shop_data.get('uploadResults', {}),
+				"embedding_status": shop_data.get('embeddingStatus', {})
+			}
+		}
+
+		# Add simple status for frontend
+		simple_status = "processing"
+		if processing_data.get('status') == 'completed':
+			simple_status = "completed"
+		elif processing_data.get('status') == 'error':
+			simple_status = "error"
+
+		response_data["simple_status"] = simple_status
+
+		# Add summary if completed
+		if processing_data.get('status') == 'completed':
+			processing_summary = processing_data.get('summary', {})
+			upload_results = shop_data.get('uploadResults', {})
+
+			response_data["summary"] = {
+				"total_products_fetched": processing_summary.get('total_products_fetched') or upload_results.get('total_products_fetched', 0),
+				"total_products_processed": processing_summary.get('total_products_processed') or upload_results.get('total_products_processed', 0),
+				"total_variants": processing_summary.get('total_variants') or upload_results.get('total_variants', 0),
+				"apparel_count": processing_summary.get('apparel_count') or upload_results.get('apparel_count', 0),
+				"non_apparel_count": processing_summary.get('non_apparel_count') or upload_results.get('non_apparel_count', 0),
+				"embeddings_generated": processing_summary.get('embeddings_generated', 0),
+				"publishable_products": processing_summary.get('publishable_products', 0),
+				"published_count": processing_summary.get('published_count', 0),
+				"publishing_errors": processing_summary.get('publishing_errors', 0),
+				"completed_at": processing_summary.get('completed_at') or upload_results.get('completed_at')
+			}
+
+		# Filter out None values
+		response_data = {k: v for k, v in response_data.items() if v is not None}
+
+		logger.info(f"Retrieved processing status for shop: {shop_id} - {simple_status}")
+
+		return https_fn.Response(
+			json.dumps(response_data, default=str),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in get_processing_status")
+		return https_fn.Response(
+			json.dumps({
+				"error": "Internal server error",
+				"message": str(e)
+			}),
+			status=500,
+			headers=headers
+		)
+
+
+@https_fn.on_request()
+def start_shopify_processing(req: https_fn.Request) -> https_fn.Response:
+	"""Start processing Shopify products by calling the external Firebase function.
+	
+	This triggers the uploadProductsShopifyApp function in the external Firebase project.
+	The access token is retrieved from the external Firebase's shopify_session collection.
+	"""
+	# Handle CORS preflight requests
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"}, req)
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response(
+				json.dumps({"error": "Method Not Allowed"}),
+				status=405,
+				headers=headers
+			)
+
+		# Get request body
+		try:
+			body = req.get_json(silent=True) or {}
+		except Exception:
+			return https_fn.Response(
+				json.dumps({"error": "Invalid JSON"}),
+				status=400,
+				headers=headers
+			)
+
+		shop_domain = body.get("shop_domain", "").strip()
+		id_token = body.get("idToken") or body.get("id_token")
+
+		# Validate required fields
+		if not shop_domain:
+			return https_fn.Response(
+				json.dumps({"error": "Missing required field: shop_domain"}),
+				status=400,
+				headers=headers
+			)
+
+		if not id_token:
+			return https_fn.Response(
+				json.dumps({"error": "Missing idToken"}),
+				status=400,
+				headers=headers
+			)
+
+		# Verify Firebase ID token
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+			user_email = decoded.get("email")
+		except Exception as e:
+			logger.exception("Failed to verify id token in start_shopify_processing")
+			return https_fn.Response(
+				json.dumps({"error": "Invalid ID token"}),
+				status=401,
+				headers=headers
+			)
+
+		logger.info(f"Starting Shopify processing for shop: {shop_domain}, user: {uid}")
+
+		# Connect to external Firebase to retrieve the access token
+		try:
+			external_db = _get_external_firebase_client()
+			
+			# Normalize shop domain for session lookup
+			normalized_shop = normalize_shop_domain(shop_domain)
+			session_id = f"offline_{normalized_shop}"
+			
+			logger.info(f"Fetching Shopify session with ID: {session_id}")
+			
+			# Get the session document from shopify_session collection
+			session_doc = external_db.collection('shopify_sessions').document(session_id).get()
+			
+			
+			if not session_doc.exists:
+				logger.error(f"Shopify session not found: {session_id}")
+				return https_fn.Response(
+					json.dumps({
+						"error": "Shopify session not found. Please reconnect your shop.",
+						"session_id": session_id
+					}),
+					status=404,
+					headers=headers
+				)
+			
+			session_data = session_doc.to_dict()
+			access_token = session_data.get('accessToken')
+
+
+			
+			if not access_token:
+				logger.error(f"Access token not found in session: {session_id}")
+				return https_fn.Response(
+					json.dumps({"error": "Access token not found in session. Please reconnect your shop."}),
+					status=404,
+					headers=headers
+				)
+			
+			logger.info(f"Successfully retrieved access token for shop: {shop_domain}")
+			logger.info(f"Access Token (truncated): {access_token[:5]}...{access_token[-5:]}")
+			
+		except Exception as e:
+			logger.exception(f"Failed to retrieve access token from external Firebase: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Failed to retrieve shop credentials: {str(e)}"}),
+				status=500,
+				headers=headers
+			)
+
+		# Create web pixel before starting product processing
+		pixel_result = {
+			"connected": False,
+			"message": "Pixel creation not attempted",
+			"pixelId": None
+		}
+
+		try:
+			logger.info(f"Creating web pixel for shop: {shop_domain}")
+			
+			# GraphQL mutation to create web pixel
+			graphql_mutation = """
+			mutation webPixelCreate($webPixel: WebPixelInput!) {
+				webPixelCreate(webPixel: $webPixel) {
+					userErrors {
+						field
+						message
+					}
+					webPixel {
+						settings
+						id
+					}
+				}
+			}
+			"""
+			
+			# Extract shop name from domain (remove .myshopify.com)
+			shop_name = normalized_shop.replace('.myshopify.com', '')
+			
+			# Prepare GraphQL variables
+			variables = {
+				"webPixel": {
+					"settings": {
+						"accountID": "konsiyer-tracking-pixel",
+						"shopID": shop_name
+					}
+				}
+			}
+			
+			# Make GraphQL request to Shopify Admin API
+			shopify_graphql_url = f"https://{normalized_shop}/admin/api/2025-10/graphql.json"
+			
+			pixel_response = requests.post(
+				shopify_graphql_url,
+				json={
+					"query": graphql_mutation,
+					"variables": variables
+				},
+				headers={
+					"Content-Type": "application/json",
+					"X-Shopify-Access-Token": access_token
+				},
+				timeout=10
+			)
+			
+			if pixel_response.status_code == 200:
+				pixel_data = pixel_response.json()
+				
+				if pixel_data.get("data", {}).get("webPixelCreate", {}).get("webPixel", {}).get("id"):
+					pixel_id = pixel_data["data"]["webPixelCreate"]["webPixel"]["id"]
+					pixel_result = {
+						"connected": True,
+						"message": "✅ Web pixel created and connected successfully!",
+						"pixelId": pixel_id
+					}
+					logger.info(f"Successfully created web pixel for {shop_domain}: {pixel_id}")
+					
+					# Store pixel connection in external Firebase
+					try:
+						pixel_connections_ref = external_db.collection("pixel_connections").document(shop_name)
+						pixel_connections_ref.set({
+							"shop": normalized_shop,
+							"pixelId": pixel_id,
+							"connected": True,
+							"connectedAt": firestore.SERVER_TIMESTAMP
+						}, merge=True)
+					except Exception as e:
+						logger.warning(f"Failed to store pixel connection in Firebase: {str(e)}")
+				
+				elif pixel_data.get("data", {}).get("webPixelCreate", {}).get("userErrors"):
+					errors = pixel_data["data"]["webPixelCreate"]["userErrors"]
+					
+					# Check if pixel already exists
+					already_set_error = any("already been set" in str(err.get("message", "")) for err in errors)
+					
+					if already_set_error:
+						pixel_result = {
+							"connected": True,
+							"message": "✅ Web pixel already exists and is connected!",
+							"pixelId": "existing-pixel"
+						}
+						logger.info(f"Web pixel already exists for {shop_domain}")
+					else:
+						error_messages = ", ".join([err.get("message", "") for err in errors])
+						pixel_result = {
+							"connected": False,
+							"message": f"Failed to create pixel: {error_messages}",
+							"pixelId": None
+						}
+						logger.warning(f"Failed to create web pixel for {shop_domain}: {error_messages}")
+			else:
+				logger.error(f"Pixel GraphQL request failed: {pixel_response.status_code} {pixel_response.text}")
+				pixel_result = {
+					"connected": False,
+					"message": f"Pixel API request failed: {pixel_response.status_code}",
+					"pixelId": None
+				}
+				
+		except Exception as e:
+			logger.exception(f"Error creating web pixel: {str(e)}")
+			pixel_result = {
+				"connected": False,
+				"message": f"Error creating pixel: {str(e)}",
+				"pixelId": None
+			}
+
+		# Call the external Firebase function to start processing
+		# The external Firebase project should have a publicly accessible Cloud Function
+		# named 'uploadProductsShopifyApp'
+		
+		# Get the external Firebase project ID
+		external_project_id = EXTERNAL_FIREBASE_PROJECT_ID
+		if not external_project_id:
+			return https_fn.Response(
+				json.dumps({"error": "External Firebase project not configured"}),
+				status=500,
+				headers=headers
+			)
+
+		# Construct the Cloud Function URL
+		# Format: https://us-central1-<project-id>.cloudfunctions.net/<function-name>
+		function_url = f"https://us-central1-{external_project_id}.cloudfunctions.net/upload_products_shopify_app_with_embeddings"
+
+		# Prepare the payload for the external function
+		payload = {
+			"shop_domain": shop_domain,
+			"access_token": access_token,
+			"user_email": user_email,
+			"user_name": body.get("user_name", ""),
+			"shopify_user_id": body.get("shopify_user_id", "")
+		}
+
+		logger.info(f"Calling external Firebase function: {function_url}")
+
+		# Make the HTTP request to the external function
+		# Since processing takes 40-50 minutes, we just trigger it and return immediately
+		# The frontend will poll get_processing_status for updates
+		try:
+			# Use a short timeout - just enough to confirm the request was received
+			response = requests.post(
+				function_url,
+				json=payload,
+				headers={"Content-Type": "application/json"},
+				timeout=30  # 30 seconds timeout - just to confirm startup
+			)
+
+			if response.status_code == 200:
+				logger.info(f"Successfully started processing for shop: {shop_domain}")
+				return https_fn.Response(
+					json.dumps({
+						"success": True,
+						"message": "Product sync started successfully",
+						"shop_domain": shop_domain,
+						"pixel_status": pixel_result
+					}),
+					status=200,
+					headers=headers
+				)
+			else:
+				error_message = response.text or "Failed to start processing"
+				logger.error(f"External function error: {response.status_code} - {error_message}")
+				return https_fn.Response(
+					json.dumps({
+						"error": f"Failed to start processing: {error_message}",
+						"status_code": response.status_code
+					}),
+					status=response.status_code,
+					headers=headers
+				)
+		except requests.exceptions.Timeout:
+			# Timeout is OK - processing was likely started successfully
+			logger.info(f"Request timed out but processing likely started for shop: {shop_domain}")
+			return https_fn.Response(
+				json.dumps({
+					"success": True,
+					"message": "Product sync started successfully (processing in background)",
+					"shop_domain": shop_domain,
+					"pixel_status": pixel_result
+				}),
+				status=200,
+				headers=headers
+			)
+
+		except requests.exceptions.RequestException as e:
+			logger.exception(f"Error calling external function: {str(e)}")
+			return https_fn.Response(
+				json.dumps({"error": f"Failed to connect to processing service: {str(e)}"}),
+				status=500,
+				headers=headers
+			)
+		
+		# Note: We don't fail the whole request if pixel creation fails
+		# The product sync is more important, pixel can be retried later
+		logger.info(f"Processing started for {shop_domain}, pixel status: {pixel_result['connected']}")
+
+	except Exception as e:
+		logger.exception("Unexpected error in start_shopify_processing")
 		return https_fn.Response(
 			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
 			status=500,
