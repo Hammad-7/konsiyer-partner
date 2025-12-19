@@ -1,4 +1,4 @@
-# Quick Start Guide - Konsiyer Enterprise Dashboard
+# Quick Start Guide - Alfreya Dashboard
 
 ## 🚀 Getting Started
 
@@ -180,7 +180,9 @@ Visit: `http://localhost:5173` (or the URL shown in terminal)
 - `inv_006` - Pending invoice (€3,200.00)
 
 ### Search Queries to Try:
+
 x
+
 - "2025-001" - Find by invoice number
 - "September" - Find by description
 - "TechNova" - Find by shop name

@@ -125,12 +125,18 @@ export const submitOnboardingApplication = async (completeData) => {
     const submissionData = {
       ...completeData,
       userId: user.uid,
-      status: 'approved', // Auto-approve immediately
-      currentStep: 3, // Completed all steps (3-step flow)
+      status: 'pending_review', // Changed to pending_review to require admin approval
+      currentStep: 4, // Completed all steps (now 4-step flow with commercial terms and agreement)
       submittedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      autoApproved: true, // Flag to indicate this was auto-approved
-      approvedAt: serverTimestamp() // Set approval timestamp
+      // Include agreement acceptance data with timestamp, IP, and version
+      agreementAcceptance: {
+        accepted: true,
+        timestamp: completeData.agreementData?.timestamp || new Date().toISOString(),
+        ipAddress: completeData.agreementData?.ipAddress || 'Unknown',
+        agreementVersion: completeData.agreementData?.agreementVersion || '1.0',
+        userAgent: completeData.agreementData?.userAgent || navigator.userAgent
+      }
     };
     
     // Check if this is first submission
@@ -141,7 +147,7 @@ export const submitOnboardingApplication = async (completeData) => {
     
     await setDoc(appRef, submissionData);
     
-    return { success: true, message: 'Information saved successfully' };
+    return { success: true, message: 'Application submitted successfully for review' };
   } catch (error) {
     console.error('Error submitting onboarding application:', error);
     throw error;
@@ -160,7 +166,7 @@ export const hasCompletedOnboarding = async () => {
 
   try {
     const app = await getOnboardingApplication();
-    return app && app.status === 'approved';
+    return app && (app.status === 'approved' || app.status === 'pending_review');
   } catch (error) {
     console.error('Error checking onboarding status:', error);
     return false;
@@ -169,11 +175,21 @@ export const hasCompletedOnboarding = async () => {
 
 /**
  * Check if user has a pending onboarding application
- * @returns {Promise<boolean>} - Always returns false (no pending state without approval process)
+ * @returns {Promise<boolean>} - True if application is pending review
  */
 export const hasPendingOnboarding = async () => {
-  // No pending state when auto-approving
-  return false;
+  const user = auth.currentUser;
+  if (!user) {
+    return false;
+  }
+
+  try {
+    const app = await getOnboardingApplication();
+    return app && app.status === 'pending_review';
+  } catch (error) {
+    console.error('Error checking pending onboarding status:', error);
+    return false;
+  }
 };
 
 /**
@@ -226,6 +242,11 @@ export const validateOnboardingData = (data) => {
   }
   
   // Bank transfer option removed in redesigned onboarding; no bank validation needed
+
+  // Agreement acceptance validation
+  if (!data.agreementData?.accepted) {
+    return 'You must accept the Brand Partnership Agreement to continue';
+  }
 
   return null; // Valid
 };

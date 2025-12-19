@@ -1,6 +1,6 @@
 # Shop Onboarding Implementation
 
-This document outlines the implementation of the shop connection onboarding flow that was added to the Konsiyer Enterprise dashboard.
+This document outlines the implementation of the shop connection onboarding flow that was added to the Alfreya dashboard.
 
 ## Overview
 

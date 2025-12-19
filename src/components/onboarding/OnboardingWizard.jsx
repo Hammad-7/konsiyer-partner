@@ -11,7 +11,8 @@ import {
 import LoadingSpinner from '../LoadingSpinner';
 import BusinessInfoStep from './BusinessInfoStep';
 import PaymentInfoStep from './PaymentInfoStep';
-import ReviewSubmitStep from './ReviewSubmitStep';
+import CommercialTermsStep from './CommercialTermsStep';
+import BrandAgreementStep from './BrandAgreementStep';
 
 const OnboardingWizard = () => {
   const navigate = useNavigate();
@@ -30,23 +31,26 @@ const OnboardingWizard = () => {
     businessInfo: {},
     addressInfo: {},
     taxInfo: {},
-    paymentInfo: {}
+    paymentInfo: {},
+    agreementData: {}
   });
   
   // Step validation state
   const [stepValidity, setStepValidity] = useState({
     1: false,
     2: false,
-    3: true // Review step is always valid
+    3: false, // Commercial terms requires checkboxes
+    4: false  // Agreement requires acceptance
   });
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
-  // Steps configuration (combined first step)
+  // Steps configuration
   const steps = [
     { number: 1, title: t('onboarding.businessInfo'), icon: '🏢' },
     { number: 2, title: t('onboarding.paymentInfo'), icon: '💳' },
-    { number: 3, title: t('onboarding.review'), icon: '✓' }
+    { number: 3, title: t('onboarding.commercialTermsShort'), icon: '📋' },
+    { number: 4, title: t('onboarding.agreementShort'), icon: '📄' }
   ];
 
   // Load existing application on mount
@@ -75,7 +79,8 @@ const OnboardingWizard = () => {
             businessInfo: app.businessInfo || {},
             addressInfo: app.addressInfo || {},
             taxInfo: app.taxInfo || {},
-            paymentInfo: app.paymentInfo || {}
+            paymentInfo: app.paymentInfo || {},
+            agreementData: app.agreementData || {}
           });
           
           // Resume at saved step
@@ -212,9 +217,16 @@ const OnboardingWizard = () => {
         );
       case 3:
         return (
-          <ReviewSubmitStep
+          <CommercialTermsStep
             data={formData}
             onValidationChange={(isValid) => handleValidationChange(3, isValid)}
+          />
+        );
+      case 4:
+        return (
+          <BrandAgreementStep
+            onValidationChange={(isValid) => handleValidationChange(4, isValid)}
+            onAgreementData={(data) => handleStepUpdate('agreementData', data)}
           />
         );
       default:
@@ -365,7 +377,7 @@ const OnboardingWizard = () => {
                   </>
                 ) : (
                   <>
-                    {t('onboarding.continueToShopConnect')} →
+                    {t('onboarding.acceptAndSubmit')} →
                   </>
                 )}
               </button>

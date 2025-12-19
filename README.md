@@ -1,4 +1,4 @@
-# Konsiyer Enterprise
+# Alfreya
 
 A modern Shopify store management dashboard built with React, Vite, and Tailwind CSS.
 
