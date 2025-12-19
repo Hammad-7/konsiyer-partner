@@ -498,7 +498,7 @@ const resources = {
           subtitle: 'Lütfen bilgilerinizi gözden geçirin ve ticari koşulları onaylayın',
           heading: 'Ticari Koşullar',
           commissionRate: 'Komisyon Oranı',
-          attributionWindow: 'Atfedilme Penceresi',
+          attributionWindow: 'Çerez Süresi',
           paymentSchedule: 'Ödeme Takvimi',
           effectiveDate: 'Yürürlük Tarihi',
           days: 'gün',
