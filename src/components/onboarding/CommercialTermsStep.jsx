@@ -149,7 +149,15 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
           </div>
           
           <div className="flex justify-between items-center py-2 border-b border-indigo-200">
-            <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.attributionWindow')}</span>
+            <div className="flex items-center group relative">
+              <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.attributionWindow')}</span>
+              <svg className="h-4 w-4 text-gray-400 ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
+                {t('onboarding.commercialTerms.attributionWindowTooltip')}
+              </div>
+            </div>
             <span className="text-lg font-bold text-indigo-900">{commercialTerms.attributionWindow} {t('onboarding.commercialTerms.days')}</span>
           </div>
           
@@ -167,9 +175,6 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
         <div className="mt-6 p-4 bg-white rounded-lg">
           <p className="text-sm text-gray-700 leading-relaxed">
             {t('onboarding.commercialTerms.applicabilityNotice')}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            {t('onboarding.commercialTerms.updateNotice')}
           </p>
         </div>
       </div>
@@ -200,24 +205,6 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
           <label htmlFor="terms-accepted" className="ml-3 text-base text-gray-900 cursor-pointer font-medium">
             {t('onboarding.commercialTerms.acceptCommercialTerms')}
           </label>
-        </div>
-      </div>
-
-      {/* Information Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex">
-          <svg className="h-5 w-5 text-blue-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="text-sm text-blue-900">
-            <p className="font-medium mb-2">{t('onboarding.commercialTerms.nextStepInfo')}</p>
-            <p className="text-blue-800">
-              {t('onboarding.commercialTerms.reviewBeforeActivation')}
-            </p>
-            <p className="text-blue-800 mt-1">
-              {t('onboarding.commercialTerms.agreementNextStep')}
-            </p>
-          </div>
         </div>
       </div>
     </div>

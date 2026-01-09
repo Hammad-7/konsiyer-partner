@@ -9,7 +9,6 @@ const OtherShopConnectPage = () => {
   const { t } = useTranslations();
   const { connectOtherShop, connecting } = useShop();
   
-  const [shopName, setShopName] = useState('');
   const [xmlUrl, setXmlUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,11 +37,6 @@ const OtherShopConnectPage = () => {
   const handleConnect = async (e) => {
     e.preventDefault();
     
-    if (!shopName.trim()) {
-      setError('Please enter your shop name');
-      return;
-    }
-    
     const urlValidationError = validateXmlUrl(xmlUrl);
     if (urlValidationError) {
       setError(urlValidationError);
@@ -53,7 +47,11 @@ const OtherShopConnectPage = () => {
       setError('');
       setSuccess('');
       
-      await connectOtherShop(shopName.trim(), null, xmlUrl.trim());
+      // Generate shop name from URL domain
+      const urlObj = new URL(xmlUrl.trim());
+      const shopName = urlObj.hostname.replace(/^www\./, '').split('.')[0];
+      
+      await connectOtherShop(shopName, null, xmlUrl.trim());
       
       setSuccess(t('shop.connectionSuccess'));
       
@@ -97,52 +95,37 @@ const OtherShopConnectPage = () => {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Connect XML Feed
+              {t('shop.xmlFeedTitle')}
             </h1>
-            <p className="text-gray-600">
-              Enter your XML feed URL to connect your shop
+            <p className="text-gray-600 mb-2">
+              {t('shop.xmlFeedDescription')}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t('shop.xmlFeedHelperSmall')}
             </p>
           </div>
 
           {/* Connection Form */}
           <form onSubmit={handleConnect} className="space-y-6">
             
-            {/* Shop Name Input */}
-            <div>
-              <label htmlFor="shopName" className="block text-sm font-medium text-gray-700 mb-2">
-                Shop Name
-              </label>
-              <input
-                type="text"
-                id="shopName"
-                value={shopName}
-                onChange={(e) => setShopName(e.target.value)}
-                placeholder="Enter your shop name"
-                disabled={connecting}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
-                  connecting ? 'bg-gray-50 cursor-not-allowed' : ''
-                }`}
-              />
-            </div>
-
             {/* XML URL Input */}
             <div>
               <label htmlFor="xmlUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                XML Feed URL
+                {t('shop.xmlUrlLabel')}
               </label>
               <input
                 type="url"
                 id="xmlUrl"
                 value={xmlUrl}
                 onChange={(e) => setXmlUrl(e.target.value)}
-                placeholder="https://example.com/products.xml"
+                placeholder={t('shop.xmlUrlPlaceholder')}
                 disabled={connecting}
                 className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 ${
                   connecting ? 'bg-gray-50 cursor-not-allowed' : ''
                 }`}
               />
               <p className="mt-2 text-xs text-gray-500">
-                Enter the URL to your XML product feed
+                {t('shop.xmlUrlHelper')}
               </p>
             </div>
 
@@ -173,7 +156,7 @@ const OtherShopConnectPage = () => {
             {/* Connect Button */}
             <button
               type="submit"
-              disabled={connecting || !shopName.trim() || !xmlUrl.trim()}
+              disabled={connecting || !xmlUrl.trim()}
               className="w-full bg-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
             >
               {connecting ? (
@@ -186,7 +169,7 @@ const OtherShopConnectPage = () => {
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  {t('shop.connectButton')}
+                  {t('shop.connectXmlFeed')}
                 </>
               )}
             </button>
@@ -197,20 +180,20 @@ const OtherShopConnectPage = () => {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="bg-purple-50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-purple-800 mb-2">
-                Important Information
+                {t('shop.xmlInfoTitle')}
               </h3>
               <div className="text-sm text-purple-700 space-y-2">
                 <p>
-                  • Your XML feed URL must be publicly accessible
+                  • {t('shop.xmlInfo1')}
                 </p>
                 <p>
-                  • The URL must point to a valid XML file
+                  • {t('shop.xmlInfo2')}
                 </p>
                 <p>
-                  • Each XML URL can only be used once
+                  • {t('shop.xmlInfo3')}
                 </p>
                 <p className="text-xs text-purple-600 mt-3">
-                  Your data will be securely processed and stored.
+                  {t('shop.xmlInfoFooter')}
                 </p>
               </div>
             </div>

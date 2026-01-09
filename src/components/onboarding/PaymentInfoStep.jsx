@@ -65,7 +65,7 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
           {t('onboarding.paymentInfoTitle')}
         </h2>
         <p className="text-gray-600">
-          {t('onboarding.choosePreferredPayment')}
+          {t('onboarding.paymentInfoDescription')}
         </p>
       </div>
 
@@ -77,7 +77,7 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
           </Label>
           
           <div className="grid grid-cols-1 gap-4">
-            {/* Only credit card option is available for now */}
+            {/* Credit Card option */}
             <div
               onClick={() => handleChange('method', 'credit_card')}
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
@@ -96,9 +96,35 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
                     <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                   )}
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-gray-900">{t('onboarding.creditCard')}</p>
-                  <p className="text-xs text-gray-500">{t('onboarding.creditCardDescription')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('onboarding.creditCardDescription')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Transfer option */}
+            <div
+              onClick={() => handleChange('method', 'bank_transfer')}
+              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                formData.method === 'bank_transfer'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <div className="flex items-center">
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                  formData.method === 'bank_transfer'
+                    ? 'border-indigo-500'
+                    : 'border-gray-300'
+                }`}>
+                  {formData.method === 'bank_transfer' && (
+                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{t('onboarding.bankTransferOption')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('onboarding.bankTransferDescription')}</p>
                 </div>
               </div>
             </div>
@@ -115,18 +141,15 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
         {formData.method === 'credit_card' && (
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-6">
             <div className="flex items-start">
-              <svg className="h-6 w-6 text-yellow-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-6 w-6 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">
-                  {t('onboarding.demoModeTitle')}
+                  {t('onboarding.creditCard')}
                 </h3>
                 <p className="text-sm text-yellow-800 mb-3">
-                  {t('onboarding.demoModeDescription')}
-                </p>
-                <p className="text-sm text-yellow-800 font-medium">
-                  {t('onboarding.demoModeNote')}
+                  {t('onboarding.creditCardDescription')}
                 </p>
               </div>
             </div>

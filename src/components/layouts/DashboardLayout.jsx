@@ -70,13 +70,13 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b">
             {!collapsed && (
-              <motion.h1
+              <motion.img
+                src="/logo.svg"
+                alt="Alfreya"
+                className="h-6 w-auto"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-xl font-bold text-gray-900"
-              >
-                Alfreya
-              </motion.h1>
+              />
             )}
             <TooltipProvider>
               <Tooltip>
@@ -207,7 +207,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
             <div className="flex flex-col h-full">
               {/* Logo */}
               <div className="flex items-center justify-between h-16 px-4 border-b">
-                <h1 className="text-xl font-bold text-gray-900">Alfreya</h1>
+                <img src="/logo.svg" alt="Alfreya" className="h-6 w-auto" />
                 <Button
                   variant="ghost"
                   size="icon"

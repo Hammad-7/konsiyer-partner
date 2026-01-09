@@ -154,7 +154,7 @@ const ConnectShopPage = () => {
         </div>
 
         {/* Additional Information */}
-        <div className="mt-12 text-center">
+        <div className="mt-6 text-center">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl mx-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               {t('common.needHelp')}

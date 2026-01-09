@@ -53,10 +53,10 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-20 w-20 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+          <div className="mx-auto h-20 w-20 bg-brand rounded-2xl flex items-center justify-center mb-6">
             <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
@@ -89,7 +89,7 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
                   id="email"
                   type="email"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand transition-colors duration-200"
                   placeholder={t('auth.enterEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -103,7 +103,7 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
                   id="password"
                   type="password"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand transition-colors duration-200"
                   placeholder={t('auth.enterPassword')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -114,7 +114,7 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand hover:bg-white hover:text-black hover:border-brand focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {loading ? (
                 <div className="flex items-center">
@@ -139,7 +139,7 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
               type="button"
               onClick={handleGoogleAuth}
               disabled={loading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -161,7 +161,7 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
                     setAuthMode(newIsSignUp ? 'register' : 'login');
                   }
                 }}
-                className="text-indigo-600 hover:text-indigo-500 text-sm font-medium transition-colors duration-200"
+                className="text-brand hover:text-brand text-sm font-medium transition-colors duration-200"
               >
                 {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
               </button>

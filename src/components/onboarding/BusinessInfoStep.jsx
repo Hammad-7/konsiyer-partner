@@ -180,14 +180,14 @@ const BusinessInfoStep = ({
       <div className="space-y-4">
         <div>
           <Label htmlFor="taxId" className="text-sm font-medium text-gray-700">{t('onboarding.taxIdLabel')} <span className="text-red-500">*</span></Label>
-          <Input id="taxId" type="text" value={tax.taxId} onChange={(e) => handleTaxChange('taxId', e.target.value)} className="mt-1 font-mono" maxLength={11} placeholder={t('onboarding.taxIdPlaceholder')} onBlur={() => handleBlur('taxId')} />
+          <Input id="taxId" type="text" value={tax.taxId} onChange={(e) => handleTaxChange('taxId', e.target.value)} className="mt-1 font-mono" maxLength={11} onBlur={() => handleBlur('taxId')} />
           {touched.taxId && errors.taxId && <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>}
           <p className="mt-1 text-xs text-gray-500">{t('onboarding.taxIdHelp')}</p>
         </div>
 
         <div>
-          <Label htmlFor="taxOffice" className="text-sm font-medium text-gray-700">{t('onboarding.taxOfficeName')} <span className="text-gray-400">({t('onboarding.taxOfficeOptional')})</span></Label>
-          <Input id="taxOffice" type="text" value={tax.taxOffice} onChange={(e) => handleTaxChange('taxOffice', e.target.value)} className="mt-1" placeholder={t('onboarding.taxOfficePlaceholder')} />
+          <Label htmlFor="taxOffice" className="text-sm font-medium text-gray-700">{t('onboarding.taxOfficeName')}</Label>
+          <Input id="taxOffice" type="text" value={tax.taxOffice} onChange={(e) => handleTaxChange('taxOffice', e.target.value)} className="mt-1"/>
         </div>
       </div>
 

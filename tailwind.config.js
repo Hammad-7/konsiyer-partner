@@ -13,6 +13,16 @@ export default {
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			brand: {
+  				DEFAULT: '#111111',
+  				50: '#fafafa',
+  				100: '#f5f5f5',
+  				500: '#111111',
+  				600: '#111111',
+  				700: '#111111',
+  				800: '#111111',
+  				900: '#111111'
+  			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'

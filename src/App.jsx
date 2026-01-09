@@ -37,7 +37,7 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-white to-cyan-50">
         <LoadingSpinner size="xl" text={t('common.initializing')} />
       </div>
     );
