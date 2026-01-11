@@ -123,7 +123,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
         {/* Right Section - Dynamic based on user state */}
         <div className="flex items-center gap-3">
           {/* Shop Selector - Only for fully authenticated users */}
-          {isFullyAuthenticated && connectedShops && connectedShops.length > 0 && (
+          {/* {isFullyAuthenticated && connectedShops && connectedShops.length > 0 && (
             <div className="hidden md:block max-w-xs">
               <Select defaultValue={connectedShops[0]?.id}>
                 <SelectTrigger className="w-[200px]">
@@ -143,13 +143,13 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 </SelectContent>
               </Select>
             </div>
-          )}
+          )} */}
 
           {/* Language Switcher - Always visible */}
           <LanguageSwitcher />
 
           {/* Notifications - Only for fully authenticated users */}
-          {isFullyAuthenticated && (
+          {/* {isFullyAuthenticated && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -161,7 +161,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 <TooltipContent>{t('nav.notifications')}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
+          )} */}
 
           {/* Authentication Actions */}
           {!isAuthenticated ? (
