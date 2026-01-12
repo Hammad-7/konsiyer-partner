@@ -178,6 +178,13 @@ const BrandAgreementStep = ({ onValidationChange, onAgreementData }) => {
               </p>
             </section>
 
+            <section>
+              <h2 className="text-xl font-bold mb-3">10. {t('onboarding.brandAgreement.section10Title')}</h2>
+              <p>
+                {t('onboarding.brandAgreement.section10Content')}
+              </p>
+            </section>
+
             <div className="mt-8 pt-6 border-t-2 border-gray-300">
               <p className="text-sm text-gray-600 italic">
                 {t('onboarding.brandAgreement.footerNote')}
