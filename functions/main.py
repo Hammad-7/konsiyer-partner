@@ -16,6 +16,7 @@ import re
 import logging
 import json
 import requests
+import time
 
 # Load environment variables from .env file if dotenv is available
 try:
@@ -2578,15 +2579,62 @@ def start_shopify_processing(req: https_fn.Request) -> https_fn.Response:
 		# Make the HTTP request to the external function
 		# Since processing takes 40-50 minutes, we just trigger it and return immediately
 		# The frontend will poll get_processing_status for updates
-		try:
-			# Use a short timeout - just enough to confirm the request was received
-			response = requests.post(
-				function_url,
-				json=payload,
-				headers={"Content-Type": "application/json"},
-				timeout=30  # 30 seconds timeout - just to confirm startup
-			)
-
+		
+		# Retry logic for 401 errors (Shopify access token propagation delay)
+		max_retries = 5
+		retry_count = 0
+		last_response = None
+		
+		while retry_count < max_retries:
+			try:
+				# Use a short timeout - just enough to confirm the request was received
+				response = requests.post(
+					function_url,
+					json=payload,
+					headers={"Content-Type": "application/json"},
+					timeout=30  # 30 seconds timeout - just to confirm startup
+				)
+				
+				# If we get a 401, retry up to max_retries times
+				if response.status_code == 401 and retry_count < max_retries - 1:
+					retry_count += 1
+					last_response = response
+					wait_time = retry_count * 10  # Exponential backoff: 10s, 20s, 30s, 40s
+					logger.warning(f"Received 401 error (likely token propagation delay), retrying ({retry_count}/{max_retries})... waiting {wait_time}s")
+					time.sleep(wait_time)
+					continue
+				
+				# Break out of retry loop if we get any other status or it's the last retry
+				last_response = response
+				break
+					
+			except requests.exceptions.Timeout:
+				# Timeout is OK - processing was likely started successfully
+				logger.info(f"Request timed out but processing likely started for shop: {shop_domain}")
+				return https_fn.Response(
+					json.dumps({
+						"success": True,
+						"message": "Product sync started successfully (processing in background)",
+						"shop_domain": shop_domain,
+						"pixel_status": pixel_result
+					}),
+					status=200,
+					headers=headers
+				)
+			except Exception as e:
+				logger.error(f"Error calling external function: {str(e)}")
+				return https_fn.Response(
+					json.dumps({
+						"error": f"Failed to start processing: {str(e)}"
+					}),
+					status=500,
+					headers=headers
+				)
+		
+		# Use the last response we got
+		if last_response:
+			response = last_response
+			
 			if response.status_code == 200:
 				logger.info(f"Successfully started processing for shop: {shop_domain}")
 				return https_fn.Response(
@@ -2610,27 +2658,6 @@ def start_shopify_processing(req: https_fn.Request) -> https_fn.Response:
 					status=response.status_code,
 					headers=headers
 				)
-		except requests.exceptions.Timeout:
-			# Timeout is OK - processing was likely started successfully
-			logger.info(f"Request timed out but processing likely started for shop: {shop_domain}")
-			return https_fn.Response(
-				json.dumps({
-					"success": True,
-					"message": "Product sync started successfully (processing in background)",
-					"shop_domain": shop_domain,
-					"pixel_status": pixel_result
-				}),
-				status=200,
-				headers=headers
-			)
-
-		except requests.exceptions.RequestException as e:
-			logger.exception(f"Error calling external function: {str(e)}")
-			return https_fn.Response(
-				json.dumps({"error": f"Failed to connect to processing service: {str(e)}"}),
-				status=500,
-				headers=headers
-			)
 		
 		# Note: We don't fail the whole request if pixel creation fails
 		# The product sync is more important, pixel can be retried later

@@ -122,7 +122,7 @@ const ShopifyConnectPage = () => {
                 </span>
                 {connecting && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <LoadingSpinner size="sm" />
+                    <LoadingSpinner size="sm" text={""}/>
                   </div>
                 )}
               </div>
@@ -158,7 +158,7 @@ const ShopifyConnectPage = () => {
             >
               {connecting ? (
                 <>
-                  <LoadingSpinner size="sm" className="mr-2" />
+                  <LoadingSpinner size="sm" className="mr-2" text={""}/>
                   {t('shop.connecting')}
                 </>
               ) : (
