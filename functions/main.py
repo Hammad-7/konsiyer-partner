@@ -2183,7 +2183,7 @@ def get_processing_status(req: https_fn.Request) -> https_fn.Response:
 		if not shop_id and shop_domain:
 			shop_id = generate_shop_id(normalize_shop_domain(shop_domain))
 
-		if not shop_id:
+		if not shop_id and not shop_domain:
 			return https_fn.Response(
 				json.dumps({
 					"error": "shop_id or shop_domain parameter is required",
@@ -2197,9 +2197,40 @@ def get_processing_status(req: https_fn.Request) -> https_fn.Response:
 		external_db = _get_external_firebase_client()
 
 		# Get processing status document
-		processing_doc = external_db.collection('processing_status').document(shop_id).get()
+		processing_doc = None
+		logger.info(f"Searching for processing status - shop_id: {shop_id}, shop_domain: {shop_domain}")
+		if shop_domain:
+			# Extract shop_name from domain
+			normalized_domain = normalize_shop_domain(shop_domain)
+			shop_name = normalized_domain.replace('.myshopify.com', '')
+			logger.info(f"Extracted shop_name: {shop_name}")
+			
+			# Try querying by document ID (shop_id) first
+			logger.info(f"Querying processing_status document by ID: {shop_id}")
+			processing_doc = external_db.collection('processing_status').document(shop_id).get()
+			if processing_doc.exists:
+				logger.info(f"Using document found by ID shop_id: {processing_doc.id}")
+			else:
+				# Fallback: query by document ID (shop_name)
+				logger.info(f"Querying processing_status document by ID: {shop_name}")
+				processing_doc = external_db.collection('processing_status').document(shop_name).get()
+				if processing_doc.exists:
+					logger.info(f"Using document found by ID shop_name: {processing_doc.id}")
+				else:
+					processing_doc = None
+					logger.info("No documents found by ID shop_id or shop_name")
+		else:
+			# Query by document ID (shop_id)
+			logger.info(f"Querying processing_status document by ID: {shop_id}")
+			processing_doc = external_db.collection('processing_status').document(shop_id).get()
+			if processing_doc.exists:
+				logger.info(f"Using document found by ID: {processing_doc.id}")
+			else:
+				processing_doc = None
+				logger.info("No document found by ID")
 
-		if not processing_doc.exists:
+		if processing_doc is None or not processing_doc.exists:
+			logger.warning(f"Processing status not found - processing_doc is None: {processing_doc is None}, exists: {processing_doc.exists if processing_doc else 'N/A'}")
 			return https_fn.Response(
 				json.dumps({
 					"error": "Processing status not found",

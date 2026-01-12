@@ -106,18 +106,20 @@ const ShopifyConnectPage = () => {
               <label htmlFor="shopDomain" className="block text-sm font-medium text-gray-700 mb-2">
                 {t('shop.shopDomain')}
               </label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <input
                   type="text"
                   id="shopDomain"
                   value={shopDomain}
                   onChange={handleInputChange}
-                  placeholder={t('shop.shopifyInputPlaceholder')}
                   disabled={connecting}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200 ${
+                  className={`flex-1 px-4 py-3 border rounded-l-xl transition-colors duration-200 ${
                     validationError ? 'border-red-300' : 'border-gray-300'
                   } ${connecting ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 />
+                <span className="px-4 py-3 bg-gray-100 border border-l-0 border-gray-300 rounded-r-xl text-gray-600 font-medium">
+                  {t('shop.shopDomainSuffix')}
+                </span>
                 {connecting && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <LoadingSpinner size="sm" />
@@ -134,11 +136,6 @@ const ShopifyConnectPage = () => {
                   {validationError}
                 </p>
               )}
-              
-              {/* Help Text */}
-              <p className="mt-2 text-sm text-gray-500">
-                {t('shop.shopDomainExample')}
-              </p>
             </div>
 
             {/* Error Message */}
@@ -169,7 +166,7 @@ const ShopifyConnectPage = () => {
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                  {t('shop.connectButton')}
+                  {t('shop.connectWithShopify')}
                 </>
               )}
             </button>

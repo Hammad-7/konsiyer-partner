@@ -84,9 +84,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="font-seasons font-bold text-3xl tracking-wide text-gray-900">
-              Alfreya
-            </h1>
+            <img src="/logo.svg" alt="Alfreya" className="h-8 w-auto" />
           </div>
           <div className="flex items-center space-x-2">
             <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
@@ -118,16 +116,14 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
             className="flex items-center cursor-pointer"
             onClick={() => navigate(isFullyAuthenticated ? '/dashboard' : '/')}
           >
-            <h1 className="font-seasons font-bold text-3xl tracking-wide text-gray-900">
-              Alfreya
-            </h1>
+            <img src="/logo.svg" alt="Alfreya" className="h-8 w-auto" />
           </div>
         </div>
 
         {/* Right Section - Dynamic based on user state */}
         <div className="flex items-center gap-3">
           {/* Shop Selector - Only for fully authenticated users */}
-          {isFullyAuthenticated && connectedShops && connectedShops.length > 0 && (
+          {/* {isFullyAuthenticated && connectedShops && connectedShops.length > 0 && (
             <div className="hidden md:block max-w-xs">
               <Select defaultValue={connectedShops[0]?.id}>
                 <SelectTrigger className="w-[200px]">
@@ -147,13 +143,13 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 </SelectContent>
               </Select>
             </div>
-          )}
+          )} */}
 
           {/* Language Switcher - Always visible */}
           <LanguageSwitcher />
 
           {/* Notifications - Only for fully authenticated users */}
-          {isFullyAuthenticated && (
+          {/* {isFullyAuthenticated && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -165,14 +161,14 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 <TooltipContent>{t('nav.notifications')}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
+          )} */}
 
           {/* Authentication Actions */}
           {!isAuthenticated ? (
             // Unauthenticated: Show login/register button
             <button
               onClick={handleAuthNavigation}
-              className="flex items-center space-x-1 bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-sm font-medium"
+              className="flex items-center space-x-1 bg-brand-600 text-white hover:bg-brand-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-sm font-medium"
             >
               <span>{getAuthButtonText()}</span>
             </button>
@@ -183,7 +179,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.photoURL} />
-                    <AvatarFallback className="bg-indigo-100 text-indigo-600">
+                    <AvatarFallback className="bg-brand-100 text-brand-600">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
@@ -214,7 +210,7 @@ const UnifiedNavbar = ({ onSidebarToggle, authMode = 'login', onAuthModeChange }
                 {/* Show admin panel link for admin users */}
                 {isAdmin && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/admin')} className="text-indigo-600 font-medium">
+                    <DropdownMenuItem onClick={() => navigate('/admin')} className="text-brand-600 font-medium">
                       <Shield className="mr-2 h-4 w-4" />
                       {t('nav.admin')}
                     </DropdownMenuItem>

@@ -287,7 +287,7 @@ const IkasConnectPage = () => {
               )}
               
               {/* Help Text */}
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-xs text-gray-500">
                 {t('shop.shopUrlHelp') || 'Enter your full Ikas shop URL (e.g., yourstorename.myikas.com or yourstorename.ikas.shop)'}
               </p>
             </div>
@@ -350,6 +350,11 @@ const IkasConnectPage = () => {
                   {validationErrors.clientSecret}
                 </p>
               )}
+              
+              {/* Help Text */}
+              <p className="mt-2 text-xs text-gray-500">
+                {t('shop.clientSecretHelp')}
+              </p>
             </div>
 
             {/* GTM Setup - Mandatory */}
@@ -517,6 +522,10 @@ const IkasConnectPage = () => {
               <p className="mt-2 text-xs text-gray-500">
                 {t('shop.gtmNoteText')}
               </p>
+              
+              <p className="mt-2 text-xs text-gray-400">
+                {t('shop.gtmHelpText')}
+              </p>
             </div>
 
             {/* Error Message */}
@@ -557,7 +566,7 @@ const IkasConnectPage = () => {
           {/* Info Section */}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="bg-purple-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-purple-800 mb-2">
+              <h3 className="text-sm font-medium text-purple-800 mb-3">
                 {t('shop.whatHappensNext')}
               </h3>
               <ul className="text-sm text-purple-700 space-y-1">

@@ -43,6 +43,38 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
   const [error, setError] = useState(null);
   const [isStartingProcessing, setIsStartingProcessing] = useState(false);
 
+  // Check initial processing status on mount
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const response = await fetch(
+          `${GET_PROCESSING_STATUS_URL}?shop_domain=${encodeURIComponent(shopDomain)}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.simple_status === 'processing') {
+            setCurrentStage('processing');
+            setProcessingStatus(data);
+          } else if (data.simple_status === 'completed') {
+            setCurrentStage('completed');
+            setProcessingStatus(data);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking initial status:', err);
+      }
+    };
+
+    checkInitialStatus();
+  }, [shopDomain]);
+
   // Poll for processing status when in processing stage
   useEffect(() => {
     if (currentStage !== 'processing') return;
@@ -181,39 +213,10 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
               </p>
             </div>
 
-            {/* Benefits Section */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center">{t('onboarding.howItWorks')}</h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="text-center space-y-3">
-                  <div className="mx-auto w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
-                    <Link2 className="w-8 h-8 text-green-500" />
-                  </div>
-                  <h3 className="font-semibold">{t('onboarding.smartDiscovery')}</h3>
-                  <p className="text-sm text-gray-600">
-                    {t('onboarding.smartDiscoveryDesc')}
-                  </p>
-                </div>
 
-                <div className="text-center space-y-3">
-                  <div className="mx-auto w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-purple-500" />
-                  </div>
-                  <h3 className="font-semibold">{t('onboarding.easySetup')}</h3>
-                  <p className="text-sm text-gray-600">
-                    {t('onboarding.easySetupDesc')}
-                  </p>
-                </div>
-              </div>
-            </div>
 
             {/* Action Section */}
             <div className="space-y-4 text-center">
-              <h2 className="text-xl font-semibold">{t('onboarding.readyToStart')}</h2>
-              <p className="text-gray-600">
-                {t('onboarding.readyToStartDesc')}
-              </p>
-
               <Button
                 onClick={handleStartProcessing}
                 disabled={isStartingProcessing}
@@ -229,7 +232,6 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
                   t('onboarding.syncProductCatalog')
                 )}
               </Button>
-
               {error && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
@@ -269,8 +271,9 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
     const totalSteps = 4;
     let currentStep = 1;
     if (stage === 'fetching_products') currentStep = 1;
-    else if (stage === 'processing_products') currentStep = 2;
-    else if (stage === 'generating_embeddings') currentStep = 3;
+    else if (stage === 'classifying_products') currentStep = 2;
+    else if (stage === 'saving_to_storage') currentStep = 3;
+    else if (stage === 'generating_embeddings') currentStep = 4;
     else if (stage === 'finalizing') currentStep = 4;
     else if (progress > 75) currentStep = 4;
     else if (progress > 50) currentStep = 3;
@@ -290,19 +293,7 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
               </div>
               <h2 className="text-2xl font-bold">{t('onboarding.processingTitle')}</h2>
               <p className="text-gray-600">
-                {stage === 'initializing' && status === 'waiting'
-                  ? t('onboarding.initializing')
-                  : status === 'unknown' || !processingStatus
-                  ? t('onboarding.connecting')
-                  : stage === 'fetching_products'
-                  ? t('onboarding.fetchingProducts')
-                  : stage === 'processing_products'
-                  ? t('onboarding.processingProducts')
-                  : stage === 'generating_embeddings'
-                  ? t('onboarding.generatingEmbeddings')
-                  : stage === 'finalizing'
-                  ? t('onboarding.finalizing')
-                  : t('onboarding.processingCatalog')}
+                {t('onboarding.processingSubtitle')}
               </p>
               {/* {progress > 0 && (
                 <p className="text-sm text-gray-500">
@@ -311,62 +302,23 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
               )} */}
             </div>
 
-            {/* Progress Bar */}
+            {/* Stepper */}
             <div className="space-y-3">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span className="font-medium capitalize">
-                  {t(`onboarding.stage.${stage}`) || stage.replace(/_/g, ' ')}
-                </span>
-                <span className="font-semibold">
-                  {t('onboarding.step')} {currentStep}{t('onboarding.of')}{totalSteps}
-                </span>
-              </div>
-              <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
-                />
-              </div>
+              {[1, 2, 3, 4].map((stepNumber) => {
+                const isActive = stepNumber === currentStep;
+                const isCompleted = stepNumber < currentStep;
+                return (
+                  <div key={stepNumber} className={`flex items-center gap-3 p-3 rounded-lg ${isActive ? 'bg-blue-50 border border-blue-200' : isCompleted ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${isCompleted ? 'bg-green-500 text-white' : isActive ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : stepNumber}
+                    </div>
+                    <span className={`font-medium ${isActive ? 'text-blue-700' : isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                      {t(`onboarding.stepperStep${stepNumber}`)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-
-            {/* Processing Steps */}
-            {processingStatus?.steps && Object.keys(processingStatus.steps).length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700">{t('onboarding.processingSteps')}</h3>
-                {(() => {
-                  // Define the fixed order of steps
-                  const stepOrder = ['product_fetch', 'fetching_products', 'storage', 'processing_products', 'embeddings', 'generating_embeddings', 'classification', 'finalizing'];
-                  // Filter to only include steps that exist in the status and maintain order
-                  const orderedSteps = stepOrder
-                    .filter(stepName => processingStatus.steps[stepName])
-                    .map(stepName => [stepName, processingStatus.steps[stepName]]);
-                  
-                  const stepTotal = orderedSteps.length;
-                  
-                  return orderedSteps.map(([stepName, stepData], index) => {
-                    const stepNumber = index + 1;
-                    return (
-                      <div
-                        key={stepName}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"
-                      >
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(stepData.status)}
-                          <span className="font-medium capitalize">
-                            {t(`onboarding.stage.${stepName}`) || stepName.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <span className="text-sm text-gray-600 font-medium">
-                          {t('onboarding.step')} {stepNumber}{t('onboarding.of')}{stepTotal}
-                        </span>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
 
             {/* Info Box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

@@ -2,31 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Building2, CreditCard, Bell, Save, Loader2 } from 'lucide-react';
+import { Building2, CreditCard, Save, Loader2, Edit, AlertCircle, Copy, Check } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import LoadingSpinner from './LoadingSpinner';
+import { useTranslations } from '@/hooks/useTranslations';
 
 import { 
   getOnboardingApplication, 
   saveOnboardingDraft,
   submitOnboardingApplication 
 } from '@/services/onboardingService';
-import { mockNotificationSettings } from '@/data/mockData';
 import { auth } from '@/firebase';
 
 const Settings = () => {
+  const { t } = useTranslations();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('company');
   const [onboardingData, setOnboardingData] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingPayment, setIsEditingPayment] = useState(false);
+  const [showClosureDialog, setShowClosureDialog] = useState(false);
+  const [closureRequestSent, setClosureRequestSent] = useState(false);
+  const [ibanCopied, setIbanCopied] = useState(false);
 
   const companyForm = useForm({
     defaultValues: {
@@ -58,8 +74,6 @@ const Settings = () => {
       },
     },
   });
-
-  const [notifications, setNotifications] = useState(mockNotificationSettings);
 
   // Load onboarding data on mount
   useEffect(() => {
@@ -108,7 +122,7 @@ const Settings = () => {
       }
     } catch (error) {
       console.error('Error loading onboarding data:', error);
-      toast.error('Failed to load your information');
+      toast.error(t('settings.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -123,6 +137,7 @@ const Settings = () => {
           type: data.businessType,
           name: data.companyName,
           legalStructure: data.legalStructure,
+          companyLegalName: data.companyName, // Add companyLegalName for validation
         },
         contactInfo: {
           email: data.contactEmail,
@@ -144,18 +159,26 @@ const Settings = () => {
           method: 'bank_transfer',
           bankDetails: {},
         },
+        // Preserve existing agreement data
+        agreementData: onboardingData?.agreementData || {
+          accepted: true,
+          timestamp: new Date().toISOString(),
+          ipAddress: 'Unknown',
+          agreementVersion: '1.0',
+        },
       };
 
       // Submit as approved application
       await submitOnboardingApplication(updateData);
       
-      toast.success('Company details saved successfully!');
+      toast.success(t('settings.companyDetailsSaved'));
+      setIsEditing(false);
       
       // Reload data to reflect changes
       await loadOnboardingData();
     } catch (error) {
       console.error('Error saving company details:', error);
-      toast.error(error.message || 'Failed to save company details');
+      toast.error(error.message || t('settings.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -189,18 +212,26 @@ const Settings = () => {
           method: data.paymentMethod,
           bankDetails: data.bankDetails,
         },
+        // Preserve existing agreement data
+        agreementData: onboardingData?.agreementData || {
+          accepted: true,
+          timestamp: new Date().toISOString(),
+          ipAddress: 'Unknown',
+          agreementVersion: '1.0',
+        },
       };
 
       // Submit as approved application
       await submitOnboardingApplication(updateData);
       
-      toast.success('Payment settings saved successfully!');
+      toast.success(t('settings.paymentSettingsSaved'));
+      setIsEditingPayment(false);
       
       // Reload data to reflect changes
       await loadOnboardingData();
     } catch (error) {
       console.error('Error saving payment settings:', error);
-      toast.error(error.message || 'Failed to save payment settings');
+      toast.error(error.message || t('settings.failedToSavePayment'));
     } finally {
       setSaving(false);
     }
@@ -209,26 +240,45 @@ const Settings = () => {
   const handleSaveNotifications = async () => {
     setSaving(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('Notification preferences saved!');
+    toast.success(t('settings.notificationsSaved'));
     setSaving(false);
   };
 
-  const toggleNotification = (category, key) => {
-    setNotifications(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [key]: !prev[category][key],
-      },
-    }));
+  const handleAccountClosureRequest = async () => {
+    try {
+      // Here you would typically send a request to your backend
+      // For now, we'll simulate it
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setShowClosureDialog(false);
+      setClosureRequestSent(true);
+      toast.success(t('settings.accountClosureRequestSent'));
+    } catch (error) {
+      console.error('Error sending account closure request:', error);
+      toast.error('Failed to send request');
+    }
   };
+
+  const handleCopyIban = async () => {
+    const iban = 'TR47 0006 2000 5750 0006 2969 56';
+    try {
+      await navigator.clipboard.writeText(iban);
+      setIbanCopied(true);
+      toast.success(t('settings.ibanCopied'));
+      setTimeout(() => setIbanCopied(false), 2000);
+    } catch (error) {
+      console.error('Error copying IBAN:', error);
+      toast.error(t('settings.copyFailed'));
+    }
+  };
+
 
   // Show loading state
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-center min-h-[400px]">
-          <LoadingSpinner size="xl" text="Loading your settings..." />
+          <LoadingSpinner size="xl" text={t('settings.loadingSettings')} />
         </div>
       </div>
     );
@@ -241,9 +291,9 @@ const Settings = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('settings.title')}</h1>
           <p className="text-gray-600">
-            Manage your account settings and preferences.
+            {t('settings.description')}
           </p>
         </motion.div>
 
@@ -253,172 +303,294 @@ const Settings = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
+          {closureRequestSent && (
+            <Alert className="mb-6 bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                {t('settings.accountClosureRequestSent')}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="company">
                 <Building2 className="h-4 w-4 mr-2" />
-                Company
+                {t('settings.company')}
               </TabsTrigger>
               <TabsTrigger value="payment">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Payment
-              </TabsTrigger>
-              <TabsTrigger value="notifications">
-                <Bell className="h-4 w-4 mr-2" />
-                Notifications
+                {t('settings.payment')}
               </TabsTrigger>
             </TabsList>
 
             {/* Company Details Tab */}
-            <TabsContent value="company">
+            <TabsContent value="company" className="space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Company Details</CardTitle>
-                  <CardDescription>
-                    Update your company information and contact details.
-                  </CardDescription>
+                <CardHeader className="relative">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{t('settings.companyDetails')}</CardTitle>
+                      <CardDescription>
+                        {t('settings.updateCompanyInfo')}
+                      </CardDescription>
+                    </div>
+                    {!isEditing && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        {t('settings.edit')}
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={companyForm.handleSubmit(handleSaveCompany)} className="space-y-6">
-                    {/* Basic Info */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold">Basic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="businessType">Business Type</Label>
-                          <Select 
-                            value={companyForm.watch('businessType')}
-                            onValueChange={(value) => companyForm.setValue('businessType', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select business type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="individual">Individual</SelectItem>
-                              <SelectItem value="sole_proprietor">Sole Proprietor</SelectItem>
-                              <SelectItem value="partnership">Partnership</SelectItem>
-                              <SelectItem value="company">Company/Business Entity</SelectItem>
-                              <SelectItem value="corporation">Corporation</SelectItem>
-                              <SelectItem value="llc">Limited Liability Company (LLC)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                  {!isEditing ? (
+                    // Read-only view
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold">{t('settings.basicInformation')}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.businessType')}</Label>
+                            <p className="mt-1 text-sm font-medium">
+                              {companyForm.watch('businessType') 
+                                ? t(`settings.${companyForm.watch('businessType')}`) || companyForm.watch('businessType')
+                                : '-'}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.businessName')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('companyName') || '-'}</p>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="companyName">Business Name *</Label>
-                          <Input
-                            id="companyName"
-                            {...companyForm.register('companyName', { required: true })}
-                            placeholder="Your Business Name"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.legalStructure')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('legalStructure') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.taxId')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('taxId') || '-'}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="legalStructure">Legal Structure (Optional)</Label>
-                          <Input
-                            id="legalStructure"
-                            {...companyForm.register('legalStructure')}
-                            placeholder="e.g., GmbH, Inc., LLC"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="taxId">Tax ID *</Label>
-                          <Input
-                            id="taxId"
-                            {...companyForm.register('taxId', { required: true })}
-                            placeholder="Tax Identification Number"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.contactEmail')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('contactEmail') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.contactPhone')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('contactPhone') || '-'}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="contactEmail">Contact Email</Label>
-                          <Input
-                            id="contactEmail"
-                            type="email"
-                            {...companyForm.register('contactEmail')}
-                            placeholder="contact@example.com"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="contactPhone">Contact Phone (Optional)</Label>
-                          <Input
-                            id="contactPhone"
-                            type="tel"
-                            {...companyForm.register('contactPhone')}
-                            placeholder="+1 234 567 8900"
-                          />
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold">{t('settings.addressInformation')}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <Label className="text-muted-foreground">{t('settings.streetAddress')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('address.street') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.city')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('address.city') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.stateProvince')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('address.state') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.postalCode')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('address.postalCode') || '-'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">{t('settings.country')}</Label>
+                            <p className="mt-1 text-sm font-medium">{companyForm.watch('address.country') || '-'}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    <Separator />
-
-                    {/* Address */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold">Address Information</h3>
-                      <div className="space-y-2">
-                        <Label htmlFor="street">Street Address *</Label>
-                        <Input
-                          id="street"
-                          {...companyForm.register('address.street', { required: true })}
-                          placeholder="123 Main Street"
-                        />
+                  ) : (
+                    // Edit mode - Form view
+                    <form onSubmit={companyForm.handleSubmit(handleSaveCompany)} className="space-y-6">
+                      {/* Basic Info */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold">{t('settings.basicInformation')}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="businessType">{t('settings.businessType')}</Label>
+                            <Select 
+                              value={companyForm.watch('businessType')}
+                              onValueChange={(value) => companyForm.setValue('businessType', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('settings.selectBusinessType')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="individual">{t('settings.individual')}</SelectItem>
+                                <SelectItem value="sole_proprietor">{t('settings.soleProprietor')}</SelectItem>
+                                <SelectItem value="partnership">{t('settings.partnership')}</SelectItem>
+                                <SelectItem value="company">{t('settings.companyEntity')}</SelectItem>
+                                <SelectItem value="corporation">{t('settings.corporation')}</SelectItem>
+                                <SelectItem value="llc">{t('settings.llc')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="companyName">{t('settings.businessName')} *</Label>
+                            <Input
+                              id="companyName"
+                              {...companyForm.register('companyName', { required: true })}
+                              placeholder={t('settings.placeholders.businessName')}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="legalStructure">{t('settings.legalStructureOptional')}</Label>
+                            <Input
+                              id="legalStructure"
+                              {...companyForm.register('legalStructure')}
+                              placeholder={t('settings.placeholders.legalStructure')}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="taxId">{t('settings.taxId')} *</Label>
+                            <Input
+                              id="taxId"
+                              {...companyForm.register('taxId', { required: true })}
+                              placeholder={t('settings.placeholders.taxId')}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="contactEmail">{t('settings.contactEmail')}</Label>
+                            <Input
+                              id="contactEmail"
+                              type="email"
+                              {...companyForm.register('contactEmail')}
+                              placeholder={t('settings.placeholders.email')}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="contactPhone">{t('settings.contactPhoneOptional')}</Label>
+                            <Input
+                              id="contactPhone"
+                              type="tel"
+                              {...companyForm.register('contactPhone')}
+                              placeholder={t('settings.placeholders.phone')}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="city">City *</Label>
-                          <Input
-                            id="city"
-                            {...companyForm.register('address.city', { required: true })}
-                            placeholder="City"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="state">State / Province *</Label>
-                          <Input
-                            id="state"
-                            {...companyForm.register('address.state', { required: true })}
-                            placeholder="State or Province"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="postalCode">Postal Code *</Label>
-                          <Input
-                            id="postalCode"
-                            {...companyForm.register('address.postalCode', { required: true })}
-                            placeholder="12345"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="country">Country *</Label>
-                          <Input
-                            id="country"
-                            {...companyForm.register('address.country', { required: true })}
-                            placeholder="Country"
-                          />
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="flex justify-end">
-                      <Button type="submit" disabled={saving}>
-                        {saving ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
+                      <Separator />
+
+                      {/* Address */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold">{t('settings.addressInformation')}</h3>
+                        <div className="space-y-2">
+                          <Label htmlFor="street">{t('settings.streetAddress')} *</Label>
+                          <Input
+                            id="street"
+                            {...companyForm.register('address.street', { required: true })}
+                            placeholder={t('settings.placeholders.street')}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="city">{t('settings.city')} *</Label>
+                            <Input
+                              id="city"
+                              {...companyForm.register('address.city', { required: true })}
+                              placeholder={t('settings.placeholders.city')}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="state">{t('settings.stateProvince')} *</Label>
+                            <Input
+                              id="state"
+                              {...companyForm.register('address.state', { required: true })}
+                              placeholder={t('settings.placeholders.state')}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="postalCode">{t('settings.postalCode')} *</Label>
+                            <Input
+                              id="postalCode"
+                              {...companyForm.register('address.postalCode', { required: true })}
+                              placeholder={t('settings.placeholders.postalCode')}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="country">{t('settings.country')} *</Label>
+                            <Input
+                              id="country"
+                              {...companyForm.register('address.country', { required: true })}
+                              placeholder={t('settings.placeholders.country')}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsEditing(false);
+                            loadOnboardingData(); // Reset form to original values
+                          }}
+                          disabled={saving}
+                        >
+                          {t('settings.cancel')}
+                        </Button>
+                        <Button type="submit" disabled={saving}>
+                          {saving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {t('settings.saving')}
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              {t('settings.saveChanges')}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Account Management Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">{t('settings.accountManagement')}</CardTitle>
+                  <CardDescription className="text-sm">
+                    {t('settings.accountManagementDescription')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowClosureDialog(true)}
+                  >
+                    {t('settings.requestAccountClosure')}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -426,172 +598,164 @@ const Settings = () => {
             {/* Payment Settings Tab */}
             <TabsContent value="payment">
               <Card>
-                <CardHeader>
-                  <CardTitle>Payment Settings</CardTitle>
-                  <CardDescription>
-                    Configure your payment preferences and bank details.
-                  </CardDescription>
+                <CardHeader className="relative">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{t('settings.paymentSettings')}</CardTitle>
+                      <CardDescription>
+                        {t('settings.paymentSettingsDescription')}
+                      </CardDescription>
+                    </div>
+                    {!isEditingPayment && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingPayment(true)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        {t('settings.edit')}
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={paymentForm.handleSubmit(handleSavePayment)} className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold">Payment Method</h3>
-                      <div className="space-y-2">
-                        <Label htmlFor="paymentMethod">Preferred Payment Method</Label>
-                        <Select 
-                          value={paymentForm.watch('paymentMethod')}
-                          onValueChange={(value) => paymentForm.setValue('paymentMethod', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="credit_card">Credit Card</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Bank Details - only show for bank transfer */}
-                    {paymentForm.watch('paymentMethod') === 'bank_transfer' && (
+                  {!isEditingPayment ? (
+                    // Read-only view
+                    <div className="space-y-6">
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold">Bank Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="accountHolder">Account Holder *</Label>
-                            <Input
-                              id="accountHolder"
-                              {...paymentForm.register('bankDetails.accountHolder', { 
-                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
-                              })}
-                              placeholder="Account Holder Name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="bankName">Bank Name *</Label>
-                            <Input
-                              id="bankName"
-                              {...paymentForm.register('bankDetails.bankName', { 
-                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
-                              })}
-                              placeholder="Bank Name"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="iban">IBAN *</Label>
-                            <Input
-                              id="iban"
-                              {...paymentForm.register('bankDetails.iban', { 
-                                required: paymentForm.watch('paymentMethod') === 'bank_transfer' 
-                              })}
-                              placeholder="DE89 3704 0044 0532 0130 00"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="bic">BIC/SWIFT (Optional)</Label>
-                            <Input
-                              id="bic"
-                              {...paymentForm.register('bankDetails.bic')}
-                              placeholder="COBADEFFXXX"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end">
-                      <Button type="submit" disabled={saving}>
-                        {saving ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Notifications Tab */}
-            <TabsContent value="notifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Choose how you want to be notified about important events.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Email Notifications */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold">Email Notifications</h3>
-                    {Object.entries(notifications.emailNotifications).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
-                          <Label className="text-base capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </Label>
+                          <Label className="text-muted-foreground">{t('settings.paymentMethod')}</Label>
+                          <p className="mt-1 text-sm font-medium">
+                            {paymentForm.watch('paymentMethod') === 'credit_card' 
+                              ? t('settings.creditCard') 
+                              : t('settings.bankTransfer')}
+                          </p>
                         </div>
-                        <Switch
-                          checked={value}
-                          onCheckedChange={() => toggleNotification('emailNotifications', key)}
-                        />
                       </div>
-                    ))}
-                  </div>
 
-                  <Separator />
-
-                  {/* Push Notifications */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold">Push Notifications</h3>
-                    {Object.entries(notifications.pushNotifications).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <Label className="text-base capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </Label>
-                        </div>
-                        <Switch
-                          checked={value}
-                          onCheckedChange={() => toggleNotification('pushNotifications', key)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleSaveNotifications} disabled={saving}>
-                      {saving ? (
+                      {/* Bank Details - only show when payment method is bank_transfer */}
+                      {paymentForm.watch('paymentMethod') === 'bank_transfer' && (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Changes
+                          <Separator />
+                          <div className="space-y-4">
+                            <h3 className="text-sm font-semibold">{t('settings.ourBankDetails')}</h3>
+                            <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">{t('settings.bankName')}</Label>
+                                  <p className="text-sm font-medium mt-1">T.Garanti Bankası</p>
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">{t('settings.accountHolder')}</Label>
+                                  <p className="text-sm font-medium mt-1">Konsiyer Teknoloji Anonim Şirketi</p>
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">{t('settings.iban')}</Label>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-sm font-medium font-mono">TR47 0006 2000 5750 0006 2969 56</p>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleCopyIban}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    {ibanCopied ? (
+                                      <Check className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            <Alert className="bg-blue-50 border-blue-200">
+                              <AlertCircle className="h-4 w-4 text-blue-600" />
+                              <AlertDescription className="text-sm text-blue-800">
+                                {t('settings.paymentDescriptionNote')}
+                              </AlertDescription>
+                            </Alert>
+                          </div>
                         </>
                       )}
-                    </Button>
-                  </div>
+                    </div>
+                  ) : (
+                    // Edit mode - Form view
+                    <form onSubmit={paymentForm.handleSubmit(handleSavePayment)} className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="paymentMethod">{t('settings.paymentMethod')}</Label>
+                          <p className="text-sm text-muted-foreground">{t('settings.paymentMethodHelper')}</p>
+                          <Select 
+                            value={paymentForm.watch('paymentMethod')}
+                            onValueChange={(value) => paymentForm.setValue('paymentMethod', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="credit_card">{t('settings.creditCard')}</SelectItem>
+                              <SelectItem value="bank_transfer">{t('settings.bankTransfer')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            setIsEditingPayment(false);
+                            loadOnboardingData(); // Reset form to original values
+                          }}
+                          disabled={saving}
+                        >
+                          {t('settings.cancel')}
+                        </Button>
+                        <Button type="submit" disabled={saving}>
+                          {saving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {t('settings.saving')}
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              {t('settings.saveChanges')}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
+
+        {/* Account Closure Confirmation Dialog */}
+        <AlertDialog open={showClosureDialog} onOpenChange={setShowClosureDialog}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader className="space-y-2">
+              <AlertDialogTitle className="text-lg">{t('settings.accountClosureConfirmTitle')}</AlertDialogTitle>
+              <AlertDialogDescription className="text-sm">
+                {t('settings.accountClosureConfirmMessage')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('settings.cancel')}</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleAccountClosureRequest}
+                className="bg-foreground hover:bg-foreground/90"
+              >
+                {t('settings.sendRequest')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
   );
 };
