@@ -402,11 +402,11 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
               </div>
             )}
 
-            <div className="text-center">
+            {/* <div className="text-center">
               <p className="text-sm text-gray-600">
                 {t('onboarding.redirecting')}
               </p>
-            </div>
+            </div> */}
           </motion.div>
         </Card>
       </div>
