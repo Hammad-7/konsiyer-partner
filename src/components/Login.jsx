@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslations } from '../hooks/useTranslations';
+import Footer from './Footer';
 
 const Login = ({ authMode = 'login', setAuthMode }) => {
   const [email, setEmail] = useState('');
@@ -53,8 +54,9 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-cyan-50">
+      <div className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto h-20 w-20 bg-brand rounded-2xl flex items-center justify-center mb-6">
             <svg className="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,6 +171,8 @@ const Login = ({ authMode = 'login', setAuthMode }) => {
           </form>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 };

@@ -28,6 +28,8 @@ import UserDetails from './components/admin/UserDetails';
 import ShopDetails from './components/admin/ShopDetails';
 import IkasProcessingPipeline from './components/admin/IkasProcessingPipeline';
 import OnboardingManagement from './components/admin/OnboardingManagement';
+import PrivacyPage from './components/privacy/page';
+import TermsPage from './components/terms/page';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -241,6 +243,8 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
