@@ -138,7 +138,7 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
         {/* Bank transfer removed — no bank details to collect in this flow */}
 
         {/* Credit Card - Demo Only */}
-        {formData.method === 'credit_card' && (
+        {/* {formData.method === 'credit_card' && (
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-6">
             <div className="flex items-start">
               <svg className="h-6 w-6 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,6 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
               </div>
             </div>
             
-            {/* Demo Card Input (non-functional) */}
             <div className="mt-4 space-y-3 opacity-60 pointer-events-none">
               <Input
                 type="text"
@@ -176,7 +175,8 @@ const PaymentInfoStep = ({ data, onUpdate, onValidationChange }) => {
               </div>
             </div>
           </div>
-        )}
+        )} 
+         */}
       </div>
 
       {/* Update Information Notice */}
