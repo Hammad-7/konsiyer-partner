@@ -21,7 +21,7 @@ export default function TermsPage() {
           <h2 className="text-2xl font-bold mt-8 mb-4">1. Tanımlar</h2>
 
           <p>
-            <strong>konsiyer.com:</strong> Alfreya Teknoloji Anonim Şirketi (Mersis No: 0576119170800001)<br />
+            <strong>konsiyer.com:</strong> Konsiyer Teknoloji Anonim Şirketi (Mersis No: 0576119170800001)<br />
             Atatürk Mah. Ertuğrul Gazi Sk. Metropol İstanbul Sitesi C1 Blok No: 2B İç Kapı No: 376 Ataşehir / İstanbul<br />
             E-posta: <a href="mailto:info@alfreya.com" className="text-blue-600 hover:underline">info@alfreya.com</a>
           </p>

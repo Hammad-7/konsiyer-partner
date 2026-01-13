@@ -1863,8 +1863,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'tr', // Changed to Turkish as default
-    lng: 'tr', // Explicitly set Turkish as default language
+    fallbackLng: 'tr', // English as fallback language
+    supportedLngs: ['en', 'tr'], // Explicitly define supported languages
     debug: process.env.NODE_ENV === 'development',
     
     detection: {
