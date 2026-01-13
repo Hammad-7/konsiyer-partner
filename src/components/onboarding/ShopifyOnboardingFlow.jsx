@@ -23,17 +23,20 @@ const FUNCTIONS_URL = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL ||
 const CHECK_SYNC_STATUS_URL = `${FUNCTIONS_URL}/check_shop_sync_status`;
 const GET_PROCESSING_STATUS_URL = `${FUNCTIONS_URL}/get_processing_status`;
 const START_PROCESSING_URL = `${FUNCTIONS_URL}/start_shopify_processing`;
+const CHECK_ACCESS_TOKEN_URL = `${FUNCTIONS_URL}/check_shopify_access_token`;
 
 /**
  * ShopifyOnboardingFlow Component
  * 
  * Handles the complete Shopify onboarding workflow:
  * 1. Welcome screen - Introduce the platform and prompt user to start processing
- * 2. Processing state - Show real-time progress of product sync
- * 3. Completion - Display success message with sync summary
+ * 2. Opens Shopify admin app page in a small, unobtrusive popup to activate access token
+ * 3. Monitors Firebase for access token creation and closes popup automatically
+ * 4. Processing state - Show real-time progress of product sync
+ * 5. Completion - Display success message with sync summary
  * 
  * This component replicates the exact workflow from the konsiyer-sync project.
- * The access token is automatically retrieved from the backend.
+ * The access token is activated by opening the Shopify admin app page.
  */
 export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
   const { getIdToken } = useAuth();
@@ -124,6 +127,102 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
       setIsStartingProcessing(true);
       setError(null);
 
+      // Extract shop name from domain (remove .myshopify.com)
+      const shopName = shopDomain.replace('.myshopify.com', '');
+      
+      // Open Shopify admin app page to activate access token
+      // Using a smaller, less distracting popup window positioned in the corner
+      const shopifyAppUrl = `https://admin.shopify.com/store/${shopName}/apps/konsiyer-sync/app/accounts`;
+      const screenWidth = window.screen.width;
+      const screenHeight = window.screen.height;
+      const popupWidth = 500;
+      const popupHeight = 400;
+      const left = screenWidth - popupWidth - 20; // 20px from right edge
+      const top = screenHeight - popupHeight - 100; // 100px from bottom
+      
+      const popup = window.open(
+        shopifyAppUrl, 
+        '_blank', 
+        `width=${popupWidth},height=${popupHeight},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+      
+      // Poll backend to check if access token is created
+      const startTime = Date.now();
+      const maxWaitTime = 30000; // 30 seconds timeout
+      const pollInterval = 1000; // Check every 1 second
+      
+      const checkToken = async () => {
+        try {
+          const response = await fetch(
+            `${CHECK_ACCESS_TOKEN_URL}?shop_domain=${encodeURIComponent(shopDomain)}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.token_exists) {
+              console.log('Access token detected!');
+              
+              // Close the popup
+              if (popup && !popup.closed) {
+                popup.close();
+              }
+              
+              // Start processing after a brief delay
+              setTimeout(() => {
+                startProcessingFlow();
+              }, 1000);
+              
+              return true; // Token found
+            }
+          }
+          
+          // Check if timeout reached
+          if (Date.now() - startTime >= maxWaitTime) {
+            console.warn('Timeout waiting for access token, proceeding anyway...');
+            if (popup && !popup.closed) {
+              popup.close();
+            }
+            startProcessingFlow();
+            return true; // Stop polling
+          }
+          
+          // Continue polling
+          setTimeout(checkToken, pollInterval);
+          return false;
+          
+        } catch (err) {
+          console.error('Error checking access token:', err);
+          // Continue polling on error
+          if (Date.now() - startTime < maxWaitTime) {
+            setTimeout(checkToken, pollInterval);
+          } else {
+            if (popup && !popup.closed) {
+              popup.close();
+            }
+            startProcessingFlow();
+          }
+        }
+      };
+      
+      // Start polling
+      checkToken();
+      
+    } catch (err) {
+      console.error('Error starting processing:', err);
+      setError('Failed to start processing. Please try again.');
+      setIsStartingProcessing(false);
+    }
+  };
+
+  const startProcessingFlow = async () => {
+    try {
       const idToken = await getIdToken();
 
       // Fire and forget - don't wait for the response
@@ -149,7 +248,7 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
       setTimeout(checkProcessingStatus, 2000);
       
     } catch (err) {
-      console.error('Error starting processing:', err);
+      console.error('Error triggering processing:', err);
       setError('Failed to start processing. Please try again.');
     } finally {
       setIsStartingProcessing(false);

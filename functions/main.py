@@ -2155,6 +2155,86 @@ def check_shop_sync_status(req: https_fn.Request) -> https_fn.Response:
 
 
 @https_fn.on_request()
+def check_shopify_access_token(req: https_fn.Request) -> https_fn.Response:
+	"""Check if Shopify access token exists in shopify_sessions collection.
+	
+	This checks the external Firebase project (shopify_sessions collection) 
+	to see if the access token has been created for the shop.
+	"""
+	# Handle CORS preflight requests
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"}, req)
+
+	try:
+		if req.method != "GET":
+			return https_fn.Response(
+				json.dumps({"error": "Method Not Allowed"}),
+				status=405,
+				headers=headers
+			)
+
+		# Get shop_domain from query parameters
+		query_params = _get_request_query(req)
+		shop_domain = query_params.get("shop_domain")
+
+		if not shop_domain:
+			return https_fn.Response(
+				json.dumps({
+					"error": "shop_domain parameter is required",
+					"usage": "GET /check_shopify_access_token?shop_domain=<domain>"
+				}),
+				status=400,
+				headers=headers
+			)
+
+		# Normalize shop domain
+		normalized_shop_domain = normalize_shop_domain(shop_domain)
+		
+		# Build session ID
+		session_id = f"offline_{normalized_shop_domain}"
+
+		# Connect to external Firebase project
+		external_db = _get_external_firebase_client()
+
+		# Check if session document exists with access token
+		session_doc = external_db.collection('shopify_sessions').document(session_id).get()
+
+		token_exists = False
+		if session_doc.exists:
+			session_data = session_doc.to_dict()
+			# Check if accessToken field exists and is not empty
+			access_token = session_data.get('accessToken')
+			if access_token:
+				token_exists = True
+				logger.info(f"Access token found for shop: {normalized_shop_domain}")
+
+		response_data = {
+			"shop_domain": normalized_shop_domain,
+			"session_id": session_id,
+			"token_exists": token_exists
+		}
+
+		logger.info(f"Access token check for {normalized_shop_domain}: token_exists={token_exists}")
+
+		return https_fn.Response(
+			json.dumps(response_data),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in check_shopify_access_token")
+		return https_fn.Response(
+			json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+			status=500,
+			headers=headers
+		)
+
+
+@https_fn.on_request()
 def get_processing_status(req: https_fn.Request) -> https_fn.Response:
 	"""Get processing status for dashboard (from konsiyer-sync project).
 	
@@ -2580,19 +2660,30 @@ def start_shopify_processing(req: https_fn.Request) -> https_fn.Response:
 		# Since processing takes 40-50 minutes, we just trigger it and return immediately
 		# The frontend will poll get_processing_status for updates
 		
-		# Retry logic for 401 errors (Shopify access token propagation delay)
+		# Retry logic for 401 errors (Shopify access token propagation delay) and SSL errors
 		max_retries = 5
 		retry_count = 0
 		last_response = None
+		last_error = None
 		
 		while retry_count < max_retries:
 			try:
 				# Use a short timeout - just enough to confirm the request was received
-				response = requests.post(
+				# Create a session with connection pooling and SSL verification
+				session = requests.Session()
+				adapter = requests.adapters.HTTPAdapter(
+					max_retries=3,
+					pool_connections=1,
+					pool_maxsize=1
+				)
+				session.mount('https://', adapter)
+				
+				response = session.post(
 					function_url,
 					json=payload,
 					headers={"Content-Type": "application/json"},
-					timeout=30  # 30 seconds timeout - just to confirm startup
+					timeout=(10, 30),  # (connect timeout, read timeout) in seconds
+					verify=True  # Ensure SSL verification is enabled
 				)
 				
 				# If we get a 401, retry up to max_retries times
@@ -2621,6 +2712,42 @@ def start_shopify_processing(req: https_fn.Request) -> https_fn.Response:
 					status=200,
 					headers=headers
 				)
+			except requests.exceptions.SSLError as ssl_error:
+				retry_count += 1
+				last_error = ssl_error
+				if retry_count < max_retries:
+					wait_time = retry_count * 5  # Exponential backoff: 5s, 10s, 15s, 20s, 25s
+					logger.warning(f"SSL error occurred, retrying ({retry_count}/{max_retries})... waiting {wait_time}s. Error: {str(ssl_error)}")
+					time.sleep(wait_time)
+					continue
+				else:
+					logger.error(f"SSL error after {max_retries} retries: {str(ssl_error)}")
+					return https_fn.Response(
+						json.dumps({
+							"error": f"SSL connection error to external function: {str(ssl_error)}",
+							"details": "The external processing service may be unavailable or misconfigured"
+						}),
+						status=503,
+						headers=headers
+					)
+			except requests.exceptions.ConnectionError as conn_error:
+				retry_count += 1
+				last_error = conn_error
+				if retry_count < max_retries:
+					wait_time = retry_count * 5
+					logger.warning(f"Connection error occurred, retrying ({retry_count}/{max_retries})... waiting {wait_time}s. Error: {str(conn_error)}")
+					time.sleep(wait_time)
+					continue
+				else:
+					logger.error(f"Connection error after {max_retries} retries: {str(conn_error)}")
+					return https_fn.Response(
+						json.dumps({
+							"error": f"Connection error to external function: {str(conn_error)}",
+							"details": "Unable to reach the external processing service"
+						}),
+						status=503,
+						headers=headers
+					)
 			except Exception as e:
 				logger.error(f"Error calling external function: {str(e)}")
 				return https_fn.Response(
