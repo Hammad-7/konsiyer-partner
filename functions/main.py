@@ -2159,7 +2159,8 @@ def check_shopify_access_token(req: https_fn.Request) -> https_fn.Response:
 	"""Check if Shopify access token exists in shopify_sessions collection.
 	
 	This checks the external Firebase project (shopify_sessions collection) 
-	to see if the access token has been created for the shop.
+	to see if the access token has been created/updated for the shop.
+	Only returns true if the token exists AND was updated after the provided start_time.
 	"""
 	# Handle CORS preflight requests
 	preflight_response = _handle_preflight(req)
@@ -2176,15 +2177,16 @@ def check_shopify_access_token(req: https_fn.Request) -> https_fn.Response:
 				headers=headers
 			)
 
-		# Get shop_domain from query parameters
+		# Get shop_domain and start_time from query parameters
 		query_params = _get_request_query(req)
 		shop_domain = query_params.get("shop_domain")
+		start_time_str = query_params.get("start_time")  # Expected in milliseconds
 
 		if not shop_domain:
 			return https_fn.Response(
 				json.dumps({
 					"error": "shop_domain parameter is required",
-					"usage": "GET /check_shopify_access_token?shop_domain=<domain>"
+					"usage": "GET /check_shopify_access_token?shop_domain=<domain>&start_time=<timestamp_ms>"
 				}),
 				status=400,
 				headers=headers
@@ -2196,6 +2198,14 @@ def check_shopify_access_token(req: https_fn.Request) -> https_fn.Response:
 		# Build session ID
 		session_id = f"offline_{normalized_shop_domain}"
 
+		# Parse start_time (convert from milliseconds to seconds if provided)
+		start_time = None
+		if start_time_str:
+			try:
+				start_time = float(start_time_str) / 1000.0  # Convert ms to seconds
+			except (ValueError, TypeError):
+				logger.warning(f"Invalid start_time provided: {start_time_str}")
+
 		# Connect to external Firebase project
 		external_db = _get_external_firebase_client()
 
@@ -2203,18 +2213,52 @@ def check_shopify_access_token(req: https_fn.Request) -> https_fn.Response:
 		session_doc = external_db.collection('shopify_sessions').document(session_id).get()
 
 		token_exists = False
+		updated_at = None
+		
 		if session_doc.exists:
 			session_data = session_doc.to_dict()
 			# Check if accessToken field exists and is not empty
 			access_token = session_data.get('accessToken')
+			
 			if access_token:
-				token_exists = True
-				logger.info(f"Access token found for shop: {normalized_shop_domain}")
+				# Get the updatedAt timestamp
+				updated_at_field = session_data.get('updatedAt')
+				
+				if updated_at_field:
+					# Handle Firestore Timestamp object
+					if hasattr(updated_at_field, 'timestamp'):
+						# It's a Firestore Timestamp
+						updated_at = updated_at_field.timestamp()
+					elif isinstance(updated_at_field, (int, float)):
+						# It's already a numeric timestamp
+						updated_at = float(updated_at_field)
+					
+					logger.info(f"Access token found for shop: {normalized_shop_domain}, updatedAt: {updated_at}, start_time: {start_time}")
+					
+					# Check if token was updated after start_time (if start_time provided)
+					if start_time is not None:
+						if updated_at and updated_at > start_time:
+							token_exists = True
+							logger.info(f"Token was updated AFTER start_time ({updated_at} > {start_time})")
+						else:
+							logger.info(f"Token exists but was NOT updated after start_time ({updated_at} <= {start_time})")
+					else:
+						# No start_time provided, just check if token exists
+						token_exists = True
+						logger.info(f"No start_time provided, token exists")
+				else:
+					# No updatedAt field, check if start_time matters
+					if start_time is None:
+						token_exists = True
+						logger.info(f"Token exists but no updatedAt field, no start_time check")
+					else:
+						logger.info(f"Token exists but no updatedAt field to compare with start_time")
 
 		response_data = {
 			"shop_domain": normalized_shop_domain,
 			"session_id": session_id,
-			"token_exists": token_exists
+			"token_exists": token_exists,
+			"updated_at": updated_at
 		}
 
 		logger.info(f"Access token check for {normalized_shop_domain}: token_exists={token_exists}")
