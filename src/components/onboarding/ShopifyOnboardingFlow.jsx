@@ -154,7 +154,7 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
       const checkToken = async () => {
         try {
           const response = await fetch(
-            `${CHECK_ACCESS_TOKEN_URL}?shop_domain=${encodeURIComponent(shopDomain)}`,
+            `${CHECK_ACCESS_TOKEN_URL}?shop_domain=${encodeURIComponent(shopDomain)}&start_time=${startTime}`,
             {
               method: 'GET',
               headers: {
@@ -167,7 +167,7 @@ export default function ShopifyOnboardingFlow({ shopDomain, onComplete }) {
             const data = await response.json();
             
             if (data.token_exists) {
-              console.log('Access token detected!');
+              console.log('Access token detected and was updated after start time!');
               
               // Close the popup
               if (popup && !popup.closed) {
