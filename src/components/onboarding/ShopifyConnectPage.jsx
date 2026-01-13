@@ -117,14 +117,12 @@ const ShopifyConnectPage = () => {
                     validationError ? 'border-red-300' : 'border-gray-300'
                   } ${connecting ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 />
-                <span className="px-4 py-3 bg-gray-100 border border-l-0 border-gray-300 rounded-r-xl text-gray-600 font-medium">
+                <span className="px-4 py-3 bg-gray-100 border border-l-0 border-gray-300 rounded-r-xl text-gray-600 font-medium flex items-center gap-2">
+                  {connecting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-indigo-600"></div>
+                  )}
                   {t('shop.shopDomainSuffix')}
                 </span>
-                {connecting && (
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <LoadingSpinner size="sm" text={""}/>
-                  </div>
-                )}
               </div>
               
               {/* Validation Error */}
@@ -158,7 +156,7 @@ const ShopifyConnectPage = () => {
             >
               {connecting ? (
                 <>
-                  <LoadingSpinner size="sm" className="mr-2" text={""}/>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-2"></div>
                   {t('shop.connecting')}
                 </>
               ) : (

@@ -1,6 +1,6 @@
 import { useTranslations } from '../hooks/useTranslations';
 
-const LoadingSpinner = ({ size = 'md', text }) => {
+const LoadingSpinner = ({ size = 'md', text, className = '' }) => {
   const { t } = useTranslations();
   
   const sizeClasses = {
@@ -10,11 +10,12 @@ const LoadingSpinner = ({ size = 'md', text }) => {
     xl: 'h-16 w-16'
   };
 
-  const displayText = text || t('common.loading');
+  // Only show text if text is explicitly provided and not an empty string
+  const displayText = text === undefined ? t('common.loading') : text;
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600 ${sizeClasses[size]}`}></div>
+      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600 ${sizeClasses[size]} ${className}`}></div>
       {displayText && (
         <p className="mt-3 text-sm text-gray-600 font-medium">{displayText}</p>
       )}
