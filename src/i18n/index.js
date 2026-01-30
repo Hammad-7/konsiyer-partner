@@ -588,7 +588,7 @@ const resources = {
           heading: 'Ticari Koşullar',
           commissionRate: 'Komisyon Oranı',
           attributionWindow: 'Çerez Süresi',
-          attributionWindowTooltip: 'Satışlar last-click attribution modeline göre hesaplanır.',
+          attributionWindowTooltip: 'Satışlar last non-paid click attribution modeline göre hesaplanır.',
           paymentSchedule: 'Ödeme Takvimi',
           effectiveDate: 'Yürürlük Tarihi',
           days: 'gün',
@@ -619,7 +619,7 @@ const resources = {
           section3Title: 'Ticari Koşullar',
           section3Content: 'Taraflar arasında geçerli olan; komisyon oranı, çerez (cookie) süresi, attribution modeli onboarding sürecinde Marka\'ya sunulan ve Marka tarafından kabul edilen Ticari Koşullar kapsamında belirlenir. Ticari Koşullar, işbu Sözleşmenin ayrılmaz bir parçasıdır ve yalnızca ilgili Marka için geçerlidir. Platform, Ticari Koşulları en az 7 (yedi) gün önceden elektronik ortamda bildirmek suretiyle güncelleyebilir. Marka\'nın Platform\'u kullanmaya devam etmesi, güncellenmiş Ticari Koşulların kabul edildiği anlamına gelir.',
           section4Title: 'Attribution ve Satış İlişkilendirme',
-          section4Content: 'Platform üzerinden yönlendirilen satışlar, last-click attribution modeli esas alınarak değerlendirilir. Platform kayıtları, satışın atfedilip atfedilmediği konusunda nihai ve bağlayıcı delil niteliğindedir.',
+          section4Content: 'Platform üzerinden yönlendirilen satışlar, last non-paid click attribution modeli esas alınarak değerlendirilir. Platform kayıtları, satışın atfedilip atfedilmediği konusunda nihai ve bağlayıcı delil niteliğindedir.',
           section5Title: 'Ödeme, Komisyon, İadeler ve Faturalama',
           section5Content: 'Platform üzerinden gerçekleşen ve geçerli sayılan satışlara ilişkin komisyon tutarları, ilgili hesap döneminin sona ermesini takiben hesaplanır. Komisyon ödemeleri, ilgili ayı takip eden ay içerisinde ve en geç ayın 15\'ine kadar gerçekleştirilir. Ödemeler; Platform\'un tercihine bağlı olarak, banka havalesi / EFT yoluyla, veya Marka tarafından yetkilendirilmiş kredi kartından otomatik tahsilat yöntemiyle gerçekleştirilebilir. Platform, ödeme öncesinde ilgili döneme ait komisyon tutarlarını ve dönemsel raporlamayı elektronik ortamda Marka\'ya iletir. Komisyon tutarları; KDV, kargo bedeli, kapıda ödeme bedeli ve benzeri ek hizmet bedelleri hariç olmak üzere, yalnızca satılan ürünlerin net satış bedeli üzerinden hesaplanır. Hesaplanan komisyon tutarlarına, yürürlükteki mevzuat uyarınca ilgili KDV tutarı ayrıca eklenir. Platform üzerinden yönlendirilen ve daha önce komisyona konu edilmiş satışların; tamamen veya kısmen iade edilmesi, siparişin iptal edilmesi, bedelinin sonradan geri ödenmesi hallerinde, ilgili satışlara ilişkin komisyon tutarları hak edilmemiş sayılır. İade veya iptalin, ilgili satışın raporlandığı veya ödendiği dönemden sonraki bir dönemde gerçekleşmesi halinde; söz konusu komisyon tutarları, ilk uygun ödeme döneminde mahsup edilerek düşülür. İlgili dönemde yeterli komisyon bulunmaması halinde, mahsup işlemi takip eden dönemlerde yapılmaya devam eder.',
           section6Title: 'Gizlilik, Veri Koruma ve Teknik Sorumluluk',
@@ -822,7 +822,9 @@ const resources = {
         tryAgain: 'Tekrar Dene',
         refresh: 'Yenile',
         noSyncData: 'Henüz senkronizasyon verisi yok.',
-        noSyncDataDesc: 'Ürünleriniz işleme başladığında burada görünecek.',
+        noSyncDataDesc: 'Ürünlerinizi senkronize etmek için aşağıdaki butona tıklayın.',
+        startSync: 'Ürün Senkronizasyonunu Başlat',
+        startingSync: 'Başlatılıyor...',
         syncInitializing: 'Ürün senkronizasyonunuz başlatılıyor...',
         loadingProcessingStatus: 'İşlem durumu yükleniyor...',
         catalogBeingProcessed: 'Ürün kataloğunuz işleniyor.',
@@ -843,6 +845,23 @@ const resources = {
         aiPoweredDiscoveryDesc: 'Ürünleriniz, müşterilerin tam olarak aradıklarını bulmalarına yardımcı olan Alfreya\'in yapay zeka destekli arama motoru aracılığıyla keşfedilebilir.',
         automaticSync: 'Otomatik Senkronizasyon',
         automaticSyncDesc: 'Ürün güncellemeleri, kataloğunuzu güncel tutmak için otomatik olarak senkronize edilir.'
+      },
+
+      // Unified Dashboard
+      unifiedDashboard: {
+        welcomeBack: 'Hoş geldiniz',
+        connectionStatus: 'Bağlantı Durumu',
+        connected: 'Bağlı',
+        dataCollecting: 'Veriler Toplanıyor',
+        dataCollectingDesc: 'Mağazanız başarıyla bağlandı. Verileriniz şu anda toplanıyor ve işleniyor.',
+        upcomingFeatures: 'Yakında Gelecek Özellikler',
+        featureSalesAnalytics: 'Satış analitiği ve performans metrikleri',
+        featureOrderTracking: 'Sipariş takibi ve yönetimi',
+        featurePerformanceMetrics: 'Detaylı performans raporları',
+        gtmNotConfigured: 'GTM Henüz Yapılandırılmadı',
+        gtmNotConfiguredDesc: 'Affiliate siparişlerini takip edebilmemiz için GTM etiketini mağazanıza eklemeniz gerekiyor.',
+        xmlFeedInfo: 'XML Feed Bilgisi',
+        xmlFeedInfoDesc: 'XML feed\'iniz otomatik olarak işleniyor. Ürün kataloğunuz güncellendikçe değişiklikler otomatik olarak senkronize edilecek.'
       },
 
       // Common
@@ -1190,6 +1209,61 @@ const resources = {
         }
       },
 
+      // Shopify Dashboard
+      shopifyDashboard: {
+        title: 'Shopify Dashboard',
+        productCatalogSyncStatus: 'Product Catalog Sync Status',
+        completed: 'Completed',
+        error: 'Error',
+        processing: 'Processing',
+        unknown: 'Unknown',
+        loadingDashboard: 'Loading dashboard...',
+        errorLoadingDashboard: 'Failed to Load Dashboard',
+        tryAgain: 'Try Again',
+        refresh: 'Refresh',
+        noSyncData: 'No sync data yet.',
+        noSyncDataDesc: 'Click the button below to sync your products.',
+        startSync: 'Start Product Sync',
+        startingSync: 'Starting...',
+        syncInitializing: 'Your product synchronization is starting...',
+        loadingProcessingStatus: 'Loading processing status...',
+        catalogBeingProcessed: 'Your product catalog is being processed.',
+        processingTime: 'This may take a few minutes.',
+        currentStage: 'Current stage:',
+        initializing: 'initializing',
+        syncCompletedSuccessfully: 'Sync Completed Successfully',
+        syncCompletedDesc: 'Your product catalog has been successfully processed and is ready to use.',
+        productsFetched: 'Products Fetched',
+        publishable: 'Publishable',
+        processed: 'Processed',
+        nonApparel: 'Non-Apparel',
+        completedAt: 'Completed at:',
+        syncFailed: 'Sync Failed',
+        syncFailedDesc: 'An error occurred during processing. Please try again.',
+        aboutIntegration: 'About Your Integration',
+        aiPoweredDiscovery: 'AI-Powered Discovery',
+        aiPoweredDiscoveryDesc: 'Your products are discoverable through Alfreya\'s AI-powered search engine that helps customers find exactly what they\'re looking for.',
+        automaticSync: 'Automatic Sync',
+        automaticSyncDesc: 'Product updates are automatically synchronized to keep your catalog up to date.'
+      },
+
+      // Unified Dashboard
+      unifiedDashboard: {
+        welcomeBack: 'Welcome back',
+        connectionStatus: 'Connection Status',
+        connected: 'Connected',
+        dataCollecting: 'Data Collecting',
+        dataCollectingDesc: 'Your shop has been successfully connected. Your data is currently being collected and processed.',
+        upcomingFeatures: 'Upcoming Features',
+        featureSalesAnalytics: 'Sales analytics and performance metrics',
+        featureOrderTracking: 'Order tracking and management',
+        featurePerformanceMetrics: 'Detailed performance reports',
+        gtmNotConfigured: 'GTM Not Configured Yet',
+        gtmNotConfiguredDesc: 'You need to add the GTM tag to your store so we can track affiliate orders.',
+        xmlFeedInfo: 'XML Feed Information',
+        xmlFeedInfoDesc: 'Your XML feed is being processed automatically. Changes will be synchronized automatically as your product catalog is updated.'
+      },
+
       // Invoices
       invoices: {
         title: 'Invoices',
@@ -1509,7 +1583,7 @@ const resources = {
           heading: 'Commercial Terms',
           commissionRate: 'Commission Rate',
           attributionWindow: 'Attribution Window',
-          attributionWindowTooltip: 'Sales are calculated using a last-click attribution model.',
+          attributionWindowTooltip: 'Sales are calculated using a last non-paid click attribution model.',
           paymentSchedule: 'Payment Schedule',
           effectiveDate: 'Effective Date',
           days: 'days',
@@ -1540,7 +1614,7 @@ const resources = {
           section3Title: 'Commercial Terms',
           section3Content: 'The commission rate, cookie duration, and attribution model applicable between the Parties are determined within the scope of the Commercial Terms presented to and accepted by the Brand during the onboarding process. The Commercial Terms form an integral part of this Agreement and apply exclusively to the relevant Brand. The Platform may update the Commercial Terms by notifying electronically at least 7 (seven) days in advance. The Brand\'s continued use of the Platform constitutes acceptance of the updated Commercial Terms.',
           section4Title: 'Attribution and Sales Association',
-          section4Content: 'Sales referred via the Platform are evaluated based on a last-click attribution model. Platform records serve as final and binding evidence regarding whether a sale is attributed or not.',
+          section4Content: 'Sales referred via the Platform are evaluated based on a last non-paid click attribution model. Platform records serve as final and binding evidence regarding whether a sale is attributed or not.',
           section5Title: 'Payment, Commission, Returns and Invoicing',
           section5Content: 'Commission amounts related to valid sales generated via the Platform are calculated following the end of the applicable accounting period. Commission payments are processed during the month following the applicable period and no later than the 15th of that month. Payments may be made either through bank transfer / EFT, or through automatic collection from a credit card authorized by the Brand, at the Platform\'s discretion. Prior to payment, the Platform will electronically provide the Brand with the applicable commission amounts and period reporting. Commission amounts are calculated based on the net sales price of products sold only, excluding VAT, shipping costs, cash-on-delivery fees, and similar additional service fees. Applicable VAT shall be added separately to the calculated commission amounts in accordance with current legislation. In cases where sales previously referred through the Platform and subject to commission are fully or partially returned, the order is cancelled, or the amount is subsequently refunded, the commission amounts related to such sales shall be deemed unearned. If a return or cancellation occurs in a period subsequent to when the related sale was reported or paid, the commission amounts in question shall be deducted by offsetting in the first available payment period. If there is insufficient commission in the relevant period, the offsetting process shall continue in subsequent periods.',
           section6Title: 'Confidentiality, Data Protection and Technical Responsibility',
