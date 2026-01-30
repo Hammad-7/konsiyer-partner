@@ -1,165 +1,69 @@
-﻿MARKA İŞ BİRLİĞİ SÖZLEŞMESİ
-
-
-Yürürlük Tarihi: 29.12.2025
-________________
-
+﻿ MARKA İŞ BİRLİĞİ SÖZLEŞMESİ
+Versiyon: 1.1
+Yürürlük Tarihi: 
 
 1. Taraflar ve Tanımlar
-İşbu Marka İş Birliği Sözleşmesi (“Sözleşme”), bir tarafta Alfreya (“Platform”), diğer tarafta Platform tarafından davet edilen ve onboarding sürecinde bilgileri sağlanan marka (“Marka”) arasında akdedilmiştir.
-Bu Sözleşme, yalnızca Platform tarafından davet edilen ve onboarding sürecini tamamlayan Markalar için geçerlidir.
-________________
-
+İşbu Marka İş Birliği Sözleşmesi (“Sözleşme”);
+bir tarafta Alfreya (“Platform”),
+diğer tarafta Platform tarafından davet edilen, onboarding sürecini tamamlayan ve elektronik onay veren marka (“Marka”)
+arasında elektronik ortamda akdedilmiştir.
+Bu Sözleşme, yalnızca Platform tarafından davet edilen ve Platform arayüzü üzerinden onay veren Markalar için geçerlidir.
 
 2. Sözleşmenin Konusu
-İşbu Sözleşme; Marka’ya ait ürünlerin Platform üzerinde listelenmesi, kullanıcılara sunulması ve Platform üzerinden Marka’ya yönlendirilmesi suretiyle gerçekleştirilen iş birliğinin hukuki ve ticari çerçevesini düzenler.
-Bu kapsamda:
-●          Marka, ürün bilgilerini, fiyatları ve görselleri doğru ve güncel şekilde sağlamayı,
-●          Platform, ürünlerin kullanıcılara sunulacağı teknik altyapıyı sağlamayı,
-●          Taraflar, belirlenen ticari koşullar çerçevesinde iş birliği yapmayı
-kabul eder.
-________________
-
+İşbu Sözleşme; Marka’ya ait ürünlerin Platform üzerinde listelenmesi, kullanıcılara sunulması ve Platform üzerinden Marka’nın kendi dijital kanallarına yönlendirilmesi suretiyle gerçekleştirilen performans esaslı iş birliğinin hukuki ve ticari çerçevesini düzenler.
 
 3. Ticari Koşullar
-Taraflar arasında geçerli olan komisyon oranı, çerez (cookie) süresi, attribution modeli, ödeme yöntemi ve ödeme zamanlamasına ilişkin esaslar, onboarding sürecinde Marka’ya sunulan Ticari Koşullar kapsamında belirlenmiştir.
-Bu Ticari Koşullar:
-●          İşbu Sözleşmenin ayrılmaz bir parçasıdır,
-●          Yalnızca ilgili Marka için geçerlidir,
-●          Belirtilen tarihten itibaren yürürlüğe girer.
-Ticari Koşullar, yürürlükteki sözleşme hükümleri kapsamında güncellenebilir.
-________________
-
+Taraflar arasında geçerli olan;
+● komisyon oranı,
+● çerez (cookie) süresi,
+● attribution modeli
+onboarding sürecinde Marka’ya sunulan ve Marka tarafından kabul edilen Ticari Koşullar kapsamında belirlenir.
+Ticari Koşullar, işbu Sözleşmenin ayrılmaz bir parçasıdır ve yalnızca ilgili Marka için geçerlidir.
+Platform, Ticari Koşulları en az 7 (yedi) gün önceden elektronik ortamda bildirmek suretiyle güncelleyebilir. Marka’nın Platform’u kullanmaya devam etmesi, güncellenmiş Ticari Koşulların kabul edildiği anlamına gelir.
 
 4. Attribution ve Satış İlişkilendirme
-Platform üzerinden yönlendirilen satışlar, last-click attribution modeline göre değerlendirilir.
-Buna göre:
-●          Satın alma işleminden önce Platform üzerinden gerçekleşen son geçerli yönlendirme esas alınır,
-●          Satın alma işleminin, belirlenen çerez süresi içerisinde gerçekleşmesi halinde satış Platform’a atfedilir.
-Marka, bu attribution modelini ve teknik işleyişini kabul ettiğini beyan eder.
-________________
+Platform üzerinden yönlendirilen satışlar, last non paid click attribution modeli esas alınarak değerlendirilir.
+Buna göre; kullanıcının Platform üzerinden yönlendirilmesini takiben, satın alma işlemi öncesinde aşağıda sayılan ücretli reklam kanallarından herhangi biri üzerinden yeniden markaya yönlenmesi halinde, söz konusu satış Platform’a atfedilmez ve Platform herhangi bir komisyon talep edemez:
+• Google Ads (Search, Shopping, Display, YouTube dahil),
+• Meta Ads (Instagram, Facebook dahil),
+• TikTok Ads.
+Platform kayıtları, tıklama zamanlaması ve trafik kaynağına ilişkin olarak satışın atfedilip atfedilmediği konusunda nihai ve bağlayıcı delil niteliğindedir.
 
-
-5. Ödeme, Komisyon ve Faturalama
+5. Ödeme, Komisyon, İadeler ve Faturalama
 Platform üzerinden gerçekleşen ve geçerli sayılan satışlara ilişkin komisyon tutarları, ilgili hesap döneminin sona ermesini takiben hesaplanır.
-Komisyon ödemeleri:
-●          İlgili ayı takip eden ay içerisinde ve en geç ilgili ayın 15’ine kadar,
-●          Ticari Koşullar’da belirtilen ödeme yöntemi doğrultusunda
-gerçekleştirilir.
+Komisyon ödemeleri, ilgili ayı takip eden ay içerisinde ve en geç ayın 15’ine kadar gerçekleştirilir.
+Ödemeler; Platform’un tercihine bağlı olarak,
+● banka havalesi / EFT yoluyla, veya
+● Marka tarafından yetkilendirilmiş kredi kartından otomatik tahsilat yöntemiyle
+gerçekleştirilebilir.
 Platform, ödeme öncesinde ilgili döneme ait komisyon tutarlarını ve dönemsel raporlamayı elektronik ortamda Marka’ya iletir.
-Komisyon tutarları, Katma Değer Vergisi (KDV) hariç satış bedeli üzerinden hesaplanır.
+Komisyon tutarları; KDV, kargo bedeli, kapıda ödeme bedeli ve benzeri ek hizmet bedelleri hariç olmak üzere, yalnızca satılan ürünlerin net satış bedeli üzerinden hesaplanır.
 Hesaplanan komisyon tutarlarına, yürürlükteki mevzuat uyarınca ilgili KDV tutarı ayrıca eklenir.
-________________
+Platform üzerinden yönlendirilen ve daha önce komisyona konu edilmiş satışların;
+● tamamen veya kısmen iade edilmesi,
+● siparişin iptal edilmesi,
+● bedelinin sonradan geri ödenmesi
+hallerinde, ilgili satışlara ilişkin komisyon tutarları hak edilmemiş sayılır.
+İade veya iptalin, ilgili satışın raporlandığı veya ödendiği dönemden sonraki bir dönemde gerçekleşmesi halinde; söz konusu komisyon tutarları, ilk uygun ödeme döneminde mahsup edilerek düşülür. İlgili dönemde yeterli komisyon bulunmaması halinde, mahsup işlemi takip eden dönemlerde yapılmaya devam eder.
 
-
-6. Gizlilik ve Veri Koruma
+6. Gizlilik, Veri Koruma ve Teknik Sorumluluk
 Taraflar, 6698 sayılı KVKK, GDPR ve ilgili tüm veri koruma mevzuatına uygun hareket etmeyi kabul eder.
-Kullanıcı verileri:
-●          Yalnızca işbu Sözleşme kapsamındaki hizmetlerin sunulması amacıyla,
-●          Sınırlı, ölçülü ve güvenli şekilde
-işlenir.
-________________
-
+Marka’nın kendi altyapısında yaptığı teknik değişiklikler nedeniyle attribution’un bozulmasından Platform sorumlu tutulamaz.
 
 7. Sözleşmenin Süresi ve Feshi
-İşbu Sözleşme, yürürlük tarihinden itibaren belirsiz süreli olarak akdedilmiştir.
-Marka, Platform üzerindeki hesap ayarları aracılığıyla işbu Sözleşmenin feshi için talepte bulunabilir. Bu talep, fesih bildirimi olarak kabul edilir.
-Fesih, bildirimin Platform’a ulaştığı tarihten itibaren 30 gün sonra hüküm ifade eder.
-Fesih tarihine kadar doğmuş mali yükümlülükler, fesih sonrasında da geçerliliğini korur.
-________________
+İşbu Sözleşme belirsiz süreli olarak akdedilmiştir.
+Marka, işbu Sözleşmeyi anında ve gerekçe göstermeksizin feshedebilir.
+Platform, fesih bildiriminin kendisine ulaşmasını takiben en geç 7 (yedi) gün içerisinde Marka’ya ait ürün listelemelerini Platform üzerinden kaldırır.
+Fesih tarihinden önce Platform tarafından yönlendirilmiş ve çerez süresi içerisinde gerçekleşmiş satışlar, fesih sonrasında da Platform’a atfedilir ve komisyona tabidir.
+
+8. Platform’un Askıya Alma Hakkı
+Platform, işbu Sözleşme hükümlerine aykırılık halinde Marka’yı geçici veya kalıcı olarak Platform’dan kaldırabilir.
+
+9. Uyuşmazlıkların Çözümü
+İşbu Sözleşmeden doğabilecek uyuşmazlıklarda İstanbul Merkez Mahkemeleri ve İcra Daireleri yetkilidir.
+
+10. Genel Hükümler
+İşbu Sözleşme elektronik ortamda düzenlenmiş olup, Marka’nın elektronik onayı ile yürürlüğe girer.
 
 
-8. Uyuşmazlıkların Çözümü
-İşbu Sözleşmeden doğabilecek uyuşmazlıklarda, öncelikle taraflar arasında iyi niyetli müzakere yoluna gidilir.
-Uzlaşma sağlanamaması halinde İstanbul Merkez Mahkemeleri ve İcra Daireleri yetkilidir.
-________________
 
-
-9. Genel Hükümler
-İşbu Sözleşme, taraflar arasındaki tüm mutabakatı içerir ve önceki tüm yazılı veya sözlü anlaşmaların yerine geçer.
-Sözleşmede yapılacak değişiklikler, Platform tarafından belirlenen usuller çerçevesinde yürürlüğe girer.
-İşbu Sözleşme elektronik ortamda düzenlenmiş olup, Marka’nın elektronik onayı ile geçerlilik kazanır.
-________________
-
-
-________________
-
-
-BRAND PARTNERSHIP AGREEMENT
-
-
-Effective Date: 29 December 2025
-________________
-
-
-1. Parties and Definitions
-This Brand Partnership Agreement (“Agreement”) is entered into between Alfreya (“Platform”) and the brand invited by the Platform and identified during the onboarding process (“Brand”).
-This Agreement applies exclusively to Brands invited by the Platform and that have completed the onboarding process.
-________________
-
-
-2. Subject of the Agreement
-This Agreement governs the legal and commercial framework of the partnership whereby the Brand’s products are listed on the Platform, presented to users, and users are directed from the Platform to the Brand.
-Accordingly:
-●          The Brand agrees to provide accurate and up-to-date product information, pricing, and visuals,
-●          The Platform provides the technical infrastructure for presenting products to users,
-●          The Parties agree to cooperate in accordance with the defined commercial terms.
-________________
-
-
-3. Commercial Terms
-The commission rate, cookie duration, attribution model, payment method, and payment schedule applicable between the Parties are defined in the Commercial Terms presented to the Brand during onboarding.
-These Commercial Terms:
-●          Form an integral part of this Agreement,
-●          Apply exclusively to the relevant Brand,
-●          Are effective as of the specified date.
-Commercial Terms may be updated in accordance with this Agreement.
-________________
-
-
-4. Attribution and Sales Attribution
-Sales referred via the Platform are evaluated using a last-click attribution model.
-Accordingly:
-●          The final valid referral via the Platform prior to purchase is considered,
-●          A sale is attributed to the Platform provided the purchase occurs within the defined cookie window.
-The Brand acknowledges and accepts this attribution model and its technical operation.
-________________
-
-
-5. Payment, Commission and Invoicing
-Commission amounts related to valid sales generated via the Platform are calculated following the end of the applicable accounting period.
-Commission payments are:
-●          Processed during the month following the applicable period and no later than the 15th of the relevant month,
-●          Made in accordance with the payment method defined in the Commercial Terms.
-Prior to payment, the Platform will electronically provide the Brand with the applicable commission amounts and reporting.
-Commission amounts are calculated based on the net sales amount excluding Value Added Tax (VAT).
-Applicable VAT shall be added to the commission amount in accordance with relevant legislation.
-________________
-
-
-6. Confidentiality and Data Protection
-The Parties agree to comply with all applicable data protection laws, including GDPR.
-User data shall be processed:
-●          Solely for the purpose of providing services under this Agreement,
-●          In a limited, proportionate, and secure manner.
-________________
-
-
-7. Term and Termination
-This Agreement is entered into for an indefinite term as of the effective date.
-The Brand may submit a termination request via the account settings on the Platform. Such request shall be deemed a notice of termination.
-Termination shall take effect 30 days after the notice is received by the Platform.
-Financial obligations accrued up to the termination date shall remain valid following termination.
-________________
-
-
-8. Dispute Resolution
-Any disputes arising out of this Agreement shall first be resolved through good-faith negotiations.
-Failing resolution, the courts and enforcement offices of Istanbul (Central) shall have exclusive jurisdiction.
-________________
-
-
-9. General Provisions
-This Agreement constitutes the entire agreement between the Parties and supersedes all prior written or oral agreements.
-Any amendments shall become effective in accordance with the procedures determined by the Platform.
-This Agreement is executed electronically and becomes effective upon the Brand’s electronic acceptance.
