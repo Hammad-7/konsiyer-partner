@@ -1195,6 +1195,143 @@ def get_all_admins(req: https_fn.Request) -> https_fn.Response:
 
 
 @https_fn.on_request()
+def get_all_users(req: https_fn.Request) -> https_fn.Response:
+	"""Get list of all users (admin only).
+	
+	Expects: POST request with idToken in body, optional pageSize and lastDoc
+	Returns: JSON with users array, lastDoc, and hasMore
+	"""
+	# Handle CORS preflight
+	preflight_response = _handle_preflight(req)
+	if preflight_response:
+		return preflight_response
+
+	headers = _add_cors_headers({"Content-Type": "application/json"})
+
+	try:
+		if req.method != "POST":
+			return https_fn.Response("Method Not Allowed", status=405, headers=headers)
+
+		body = req.get_json(silent=True) or {}
+		id_token = body.get("idToken") or body.get("id_token")
+		page_size = body.get("pageSize", 50)
+		last_doc_id = body.get("lastDoc")
+		
+		if not id_token:
+			return https_fn.Response(json.dumps({"error": "Missing idToken"}), status=400, headers=headers)
+
+		# Verify ID token and check admin
+		try:
+			decoded = admin_auth.verify_id_token(id_token)
+			uid = decoded.get("uid")
+		except Exception:
+			logger.exception("Failed to verify id token in get_all_users")
+			return https_fn.Response(json.dumps({"error": "Invalid ID token"}), status=401, headers=headers)
+
+		if not _is_admin(uid):
+			return https_fn.Response(
+				json.dumps({"error": "Admin access required"}),
+				status=403,
+				headers=headers
+			)
+
+		# Fetch users from Firestore
+		db = firestore.client()
+		users_ref = db.collection("users")
+		
+		# Get all users without ordering first
+		query = users_ref.limit(page_size)
+		
+		if last_doc_id:
+			# Get the last document
+			last_doc_ref = users_ref.document(last_doc_id)
+			last_doc = last_doc_ref.get()
+			if last_doc.exists:
+				query = users_ref.start_after(last_doc).limit(page_size)
+		
+		users_snapshot = query.stream()
+
+		users = []
+		last_doc = None
+		
+		# Convert timestamps to milliseconds for JSON serialization
+		def convert_timestamp(ts):
+			if not ts:
+				return None
+			if hasattr(ts, 'isoformat'):
+				# Python datetime object
+				return int(ts.timestamp() * 1000)
+			elif hasattr(ts, 'timestamp'):
+				# Firestore timestamp
+				return int(ts.timestamp() * 1000)
+			elif isinstance(ts, (int, float)):
+				# Already a timestamp (possibly in seconds or milliseconds)
+				# If it's a small number, assume seconds and convert to milliseconds
+				if ts < 10000000000:  # Less than year 2286 in seconds
+					return int(ts * 1000)
+				return int(ts)
+			return None
+		
+		for user_doc in users_snapshot:
+			user_data = user_doc.to_dict()
+			user_id = user_doc.id
+			
+			# Fetch user data from Firebase Auth
+			auth_user_data = None
+			try:
+				auth_user = admin_auth.get_user(user_id)
+				auth_user_data = {
+					"email": auth_user.email,
+					"displayName": auth_user.display_name,
+					"createdAt": auth_user.user_metadata.creation_timestamp if auth_user.user_metadata else None
+				}
+			except Exception as e:
+				logger.warning(f"Could not fetch Auth data for user {user_id}: {str(e)}")
+			
+			# Merge data
+			email = (auth_user_data.get("email") if auth_user_data else None) or user_data.get("email", "N/A")
+			display_name = (auth_user_data.get("displayName") if auth_user_data else None) or user_data.get("displayName") or user_data.get("name", "N/A")
+			
+			# Convert timestamps in user_data
+			converted_user_data = {}
+			for key, value in user_data.items():
+				converted_user_data[key] = convert_timestamp(value) if hasattr(value, 'timestamp') or hasattr(value, 'isoformat') else value
+			
+			user_entry = {
+				"id": user_id,
+				"email": email,
+				"displayName": display_name,
+				**converted_user_data  # Include all Firestore data with converted timestamps
+			}
+			
+			users.append(user_entry)
+			last_doc = user_doc
+
+		# Sort users by createdAt descending
+		users.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+
+		has_more = len(users) == page_size
+		
+		response_data = {
+			"users": users,
+			"hasMore": has_more
+		}
+		
+		if last_doc:
+			response_data["lastDoc"] = last_doc.id
+
+		return https_fn.Response(
+			json.dumps(response_data),
+			status=200,
+			headers=headers
+		)
+
+	except Exception as e:
+		logger.exception("Unexpected error in get_all_users")
+		return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request()
 def add_admin(req: https_fn.Request) -> https_fn.Response:
 	"""Add a user as admin (super admin only).
 	
@@ -1472,15 +1609,24 @@ def init_super_admin(req: https_fn.Request) -> https_fn.Response:
 	try:
 		body = req.get_json(silent=True) or {}
 		secret = body.get("secret")
+		id_token = body.get("idToken")
 		
-		# Check secret - for security, this should match an environment variable
-		# For now, we'll use a simple check
+		# Verify ID token to get UID
+		uid = None
+		if id_token:
+			try:
+				decoded = admin_auth.verify_id_token(id_token)
+				uid = decoded.get("uid")
+			except Exception:
+				pass
+		
+		# Allow if user is the super admin UID or has correct secret
 		expected_secret = os.environ.get("SUPER_ADMIN_INIT_SECRET", "konsiyer-super-admin-2025")
 		
-		if secret != expected_secret:
+		if uid != SUPER_ADMIN_UID and secret != expected_secret:
 			logger.warning("Unauthorized super admin initialization attempt")
 			return https_fn.Response(
-				json.dumps({"error": "Invalid secret"}),
+				json.dumps({"error": "Invalid secret or not super admin"}),
 				status=401,
 				headers=headers
 			)

@@ -97,37 +97,26 @@ export const isUserAdmin = async (userId = null) => {
  */
 export const getAllUsers = async (pageSize = 50, lastDoc = null) => {
   try {
-    const usersRef = collection(db, 'users');
-    let usersQuery;
+    const idToken = await getIdToken();
     
-    if (lastDoc) {
-      usersQuery = query(
-        usersRef,
-        orderBy('createdAt', 'desc'),
-        startAfter(lastDoc),
-        limit(pageSize)
-      );
-    } else {
-      usersQuery = query(
-        usersRef,
-        orderBy('createdAt', 'desc'),
-        limit(pageSize)
-      );
-    }
-    
-    const snapshot = await getDocs(usersQuery);
-    const users = [];
-    let newLastDoc = null;
-    
-    snapshot.forEach((doc) => {
-      users.push({
-        id: doc.id,
-        ...doc.data()
-      });
-      newLastDoc = doc;
+    const response = await fetch(`${FUNCTIONS_URL}/get_all_users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        idToken,
+        pageSize,
+        lastDoc: lastDoc ? lastDoc.id : null
+      })
     });
-    
-    return { users, lastDoc: newLastDoc, hasMore: users.length === pageSize };
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch users');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching all users:', error);
     throw error;
