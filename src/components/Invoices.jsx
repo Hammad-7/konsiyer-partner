@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslations } from '../hooks/useTranslations';
 import { toast } from 'sonner';
@@ -11,7 +11,8 @@ import {
   CreditCard,
   MoreVertical,
   CheckSquare,
-  Square
+  Square,
+  FileText
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,15 +42,22 @@ import { format } from 'date-fns';
 
 const Invoices = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslations();
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Determine if we're on the payments page
+  const isPaymentsPage = location.pathname === '/payments';
+  
+  // Use empty array instead of mock data
+  const realInvoices = [];
 
   // Filter invoices based on tab and search
   const filteredInvoices = useMemo(() => {
-    let filtered = mockInvoices;
+    let filtered = realInvoices;
 
     // Filter by status tab
     if (activeTab === 'pending') {
@@ -73,17 +81,17 @@ const Invoices = () => {
   // Calculate totals
   const totals = useMemo(() => {
     return {
-      all: mockInvoices.length,
-      pending: mockInvoices.filter(inv => inv.status === 'pending').length,
-      paid: mockInvoices.filter(inv => inv.status === 'paid').length,
-      totalPending: mockInvoices
+      all: realInvoices.length,
+      pending: realInvoices.filter(inv => inv.status === 'pending').length,
+      paid: realInvoices.filter(inv => inv.status === 'paid').length,
+      totalPending: realInvoices
         .filter(inv => inv.status === 'pending')
         .reduce((sum, inv) => sum + inv.amount, 0),
-      totalPaid: mockInvoices
+      totalPaid: realInvoices
         .filter(inv => inv.status === 'paid')
         .reduce((sum, inv) => sum + inv.amount, 0),
     };
-  }, []);
+  }, [realInvoices]);
 
   const formatCurrency = (amount, currency) => {
     return new Intl.NumberFormat('en-US', {
@@ -191,60 +199,92 @@ const Invoices = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('invoices.title')}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isPaymentsPage ? t('invoices.paymentsTitle') : t('invoices.title')}
+          </h1>
           <p className="text-gray-600">
-            {t('invoices.description')}
+            {isPaymentsPage ? t('invoices.paymentsDescription') : t('invoices.description')}
           </p>
         </motion.div>
 
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>{t('invoices.totalInvoices')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{totals.all}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>{t('invoices.pending')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-yellow-600">{totals.pending}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {formatCurrency(totals.totalPending, 'EUR')}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>{t('invoices.paid')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-green-600">{totals.paid}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {formatCurrency(totals.totalPaid, 'EUR')}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>{t('invoices.totalRevenue')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">
-                {formatCurrency(totals.totalPending + totals.totalPaid, 'EUR')}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Empty State */}
+        {realInvoices.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                  {isPaymentsPage ? (
+                    <CreditCard className="h-10 w-10 text-indigo-600" />
+                  ) : (
+                    <FileText className="h-10 w-10 text-indigo-600" />
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {isPaymentsPage ? t('invoices.paymentsEmptyStateTitle') : t('invoices.emptyStateTitle')}
+                </h3>
+                <p className="text-gray-600 text-center max-w-md">
+                  {isPaymentsPage ? t('invoices.paymentsEmptyStateDescription') : t('invoices.emptyStateDescription')}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Show stats and table only when there are invoices */}
+        {realInvoices.length > 0 && (
+          <>
+            {/* Stats Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>{t('invoices.totalInvoices')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{totals.all}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>{t('invoices.pending')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-yellow-600">{totals.pending}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatCurrency(totals.totalPending, 'EUR')}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>{t('invoices.paid')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-green-600">{totals.paid}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatCurrency(totals.totalPaid, 'EUR')}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>{t('invoices.totalRevenue')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">
+                    {formatCurrency(totals.totalPending + totals.totalPaid, 'EUR')}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
 
         {/* Main Content */}
         <motion.div
@@ -404,6 +444,8 @@ const Invoices = () => {
             </CardContent>
           </Card>
         </motion.div>
+          </>
+        )}
       </div>
   );
 };
