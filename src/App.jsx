@@ -82,11 +82,9 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <FeatureProtectedRoute>
-                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                    <Invoices />
-                  </DashboardLayout>
-                </FeatureProtectedRoute>
+                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <Invoices />
+                </DashboardLayout>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 
@@ -96,11 +94,9 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <FeatureProtectedRoute>
-                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                    <InvoiceDetail />
-                  </DashboardLayout>
-                </FeatureProtectedRoute>
+                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <InvoiceDetail />
+                </DashboardLayout>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 
@@ -110,11 +106,9 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardProtectedRoute>
-                <FeatureProtectedRoute>
-                  <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                    <Invoices />
-                  </DashboardLayout>
-                </FeatureProtectedRoute>
+                <DashboardLayout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <Invoices />
+                </DashboardLayout>
               </DashboardProtectedRoute>
             </ProtectedRoute>
           } 

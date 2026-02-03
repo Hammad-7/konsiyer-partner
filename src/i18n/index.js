@@ -15,6 +15,7 @@ const resources = {
         dashboard: 'Panel',
         shops: 'Mağazalar',
         invoices: 'Faturalar',
+        payments: 'Ödemeler',
         settings: 'Ayarlar',
         admin: 'Yönetici',
         notifications: 'Bildirimler',
@@ -212,7 +213,7 @@ const resources = {
       // Invoices
       invoices: {
         title: 'Faturalar',
-        description: 'Tüm faturalarınızı görüntüleyin ve yönetin',
+        description: 'Satışlarınızdan kaynaklanan faturalarınızı takip edin',
         all: 'Tümü',
         pending: 'Bekleyen',
         paid: 'Ödenen',
@@ -245,7 +246,7 @@ const resources = {
         bulkDownload: 'Toplu İndir',
         bulkPay: 'Toplu Öde',
         shop: 'Mağaza',
-        description: 'Açıklama',
+        description: 'Önceki faturalarınızı görüntüleyin ve yönetin.',
         totalInvoices: 'Toplam Fatura',
         invoiceList: 'Fatura Listesi',
         payAll: 'Tümünü Öde',
@@ -258,7 +259,13 @@ const resources = {
         allPaymentsCompleted: 'Tüm ödemeler başarıyla tamamlandı!',
         paymentsFailed: 'Ödemeler işlenemedi',
         date: 'Tarih',
-        totalRevenue: 'Toplam Gelir'
+        totalRevenue: 'Toplam Gelir',
+        emptyStateTitle: 'Henüz fatura yok',
+        emptyStateDescription: 'Bir fatura oluşturulduktan sonra burada görünecektir.',
+        paymentsTitle: 'Ödemeler',
+        paymentsDescription: 'Ödeme geçmişinizi ve işlem durumlarını görüntüleyin',
+        paymentsEmptyStateTitle: 'Henüz ödeme yapılmadı',
+        paymentsEmptyStateDescription: 'Bir ödeme yapıldıktan sonra burada görünecektir.'
       },
 
       // Invoice Detail
@@ -977,6 +984,7 @@ const resources = {
         dashboard: 'Dashboard',
         shops: 'Shops',
         invoices: 'Invoices',
+        payments: 'Payments',
         settings: 'Settings',
         admin: 'Admin',
         notifications: 'Notifications',
@@ -1294,7 +1302,7 @@ const resources = {
       // Invoices
       invoices: {
         title: 'Invoices',
-        description: 'View and manage all your invoices',
+        description: 'Track invoices generated from your sales',
         all: 'All',
         pending: 'Pending',
         paid: 'Paid',
@@ -1340,7 +1348,13 @@ const resources = {
         allPaymentsCompleted: 'All payments completed successfully!',
         paymentsFailed: 'Failed to process payments',
         date: 'Date',
-        totalRevenue: 'Total Revenue'
+        totalRevenue: 'Total Revenue',
+        emptyStateTitle: 'No invoices yet',
+        emptyStateDescription: 'Once an invoice has been generated, it will be shown here.',
+        paymentsTitle: 'Payments',
+        paymentsDescription: 'View your payment history and transaction status',
+        paymentsEmptyStateTitle: 'No payments yet',
+        paymentsEmptyStateDescription: 'Once a payment is made, it will be shown here.'
       },
 
       // Invoice Detail
