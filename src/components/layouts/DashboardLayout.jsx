@@ -16,20 +16,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from '@/hooks/useTranslations';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, disabled: false },
-  { name: 'Invoices', href: '/invoices', icon: FileText, disabled: true },
-  { name: 'Payments', href: '/payments', icon: CreditCard, disabled: true },
-  { name: 'Shops', href: '/shops', icon: Store, disabled: true },
-  { name: 'Settings', href: '/settings', icon: Settings, disabled: false },
+  { name: 'dashboard', href: '/dashboard', icon: LayoutDashboard, disabled: false },
+  { name: 'invoices', href: '/invoices', icon: FileText, disabled: false },
+  { name: 'payments', href: '/payments', icon: CreditCard, disabled: false },
+  { name: 'settings', href: '/settings', icon: Settings, disabled: false },
 ];
 
 export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslations();
 
   const getUserInitials = () => {
     if (user?.displayName) {
@@ -103,6 +104,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
               const isActive = location.pathname === item.href || 
                              (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
               const Icon = item.icon;
+              const itemLabel = t(`nav.${item.name}`);
 
               // If the item is disabled, show a tooltip with "Coming soon" and prevent navigation
               if (item.disabled) {
@@ -119,7 +121,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                           <Icon className="h-5 w-5 flex-shrink-0" />
                           {!collapsed && (
                             <span className="flex items-center gap-2">
-                              {item.name}
+                              {itemLabel}
                               <Lock className="h-3 w-3" />
                             </span>
                           )}
@@ -147,12 +149,12 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                         )}
                       >
                         <Icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span>{item.name}</span>}
+                        {!collapsed && <span>{itemLabel}</span>}
                       </Link>
                     </TooltipTrigger>
                     {collapsed && (
                       <TooltipContent side="right">
-                        {item.name}
+                        {itemLabel}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -223,6 +225,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                   const isActive = location.pathname === item.href ||
                                  (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
                   const Icon = item.icon;
+                  const itemLabel = t(`nav.${item.name}`);
 
                   // If the item is disabled, show it greyed out and non-clickable
                   if (item.disabled) {
@@ -236,7 +239,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                       >
                         <Icon className="h-5 w-5" />
                         <span className="flex items-center gap-2">
-                          {item.name}
+                          {itemLabel}
                           <Lock className="h-3 w-3" />
                         </span>
                       </div>
@@ -256,7 +259,7 @@ export const DashboardLayout = ({ children, sidebarOpen, setSidebarOpen }) => {
                       )}
                     >
                       <Icon className="h-5 w-5" />
-                      <span>{item.name}</span>
+                      <span>{itemLabel}</span>
                     </Link>
                   );
                 })}
