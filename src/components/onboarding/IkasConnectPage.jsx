@@ -126,7 +126,7 @@ const IkasConnectPage = () => {
 
   const handleCopyGtmId = async () => {
     try {
-      await navigator.clipboard.writeText('GTM-PK98KRR2');
+      await navigator.clipboard.writeText('GTM-PH5FKW99');
       setGtmCopied(true);
       setTimeout(() => setGtmCopied(false), 2000);
     } catch (err) {
@@ -170,7 +170,7 @@ const IkasConnectPage = () => {
         setGtmVerified(data.gtmInstalled);
         
         if (!data.gtmInstalled) {
-          console.log('GTM tag not found on store. Please ensure GTM-PK98KRR2 is installed.');
+          console.log('GTM tag not found on store. Please ensure GTM-PH5FKW99 is installed.');
         }
       } else if (data.error) {
         // Verification failed but don't block the user
@@ -184,7 +184,7 @@ const IkasConnectPage = () => {
       console.error('Error verifying GTM:', err);
       // Don't block the user - just show that verification failed
       setGtmVerified(null);
-      console.warn('Could not verify GTM automatically. Please ensure GTM-PK98KRR2 is installed on your store.');
+      console.warn('Could not verify GTM automatically. Please ensure GTM-PH5FKW99 is installed on your store.');
     } finally {
       setGtmVerifying(false);
     }
@@ -448,7 +448,7 @@ const IkasConnectPage = () => {
               
               <div className="flex items-center space-x-2">
                 <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 font-mono text-sm text-gray-700">
-                  GTM-PK98KRR2
+                  GTM-PH5FKW99
                 </div>
                 <button
                   type="button"

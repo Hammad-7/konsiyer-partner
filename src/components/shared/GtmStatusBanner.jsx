@@ -22,7 +22,7 @@ const GtmStatusBanner = ({ shop, onStatusChange }) => {
 
   const copyGtm = async () => {
     try {
-      await navigator.clipboard.writeText('GTM-PK98KRR2');
+      await navigator.clipboard.writeText('GTM-PH5FKW99');
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
@@ -92,7 +92,7 @@ const GtmStatusBanner = ({ shop, onStatusChange }) => {
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
           {/* GTM ID */}
           <div className="font-mono text-xs bg-white border border-amber-200 rounded px-2 py-1">
-            GTM-PK98KRR2
+            GTM-PH5FKW99
           </div>
 
           {/* Copy Button */}
