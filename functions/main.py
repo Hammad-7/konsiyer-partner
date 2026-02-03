@@ -1893,7 +1893,7 @@ def verify_gtm(req: https_fn.Request) -> https_fn.Response:
 	{
 		"success": true,
 		"gtmInstalled": true/false,
-		"gtmId": "GTM-PK98KRR2" (if found)
+		"gtmId": "GTM-PH5FKW99" (if found)
 	}
 	"""
 	# CORS headers
@@ -1965,8 +1965,8 @@ def verify_gtm(req: https_fn.Request) -> https_fn.Response:
 			
 			html_content = response.text
 			
-			# Check for GTM-PK98KRR2 in the HTML
-			gtm_id = "GTM-PK98KRR2"
+			# Check for GTM-PH5FKW99 in the HTML
+			gtm_id = "GTM-PH5FKW99"
 			gtm_installed = gtm_id in html_content
 			
 			logger.info(f"GTM verification result for {store_url}: {gtm_installed}")

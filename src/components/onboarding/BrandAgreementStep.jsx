@@ -248,7 +248,7 @@ const BrandAgreementStep = ({ onValidationChange, onAgreementData }) => {
                   </h1>
                   
                   <p className="text-sm text-gray-600 text-center mb-8">
-                    {t('onboarding.brandAgreement.version')}: {AGREEMENT_VERSION} | {t('onboarding.brandAgreement.effectiveDate')}: {new Date().toLocaleDateString()}
+                    {t('onboarding.brandAgreement.version')}: {AGREEMENT_VERSION} | {t('onboarding.brandAgreement.effectiveDate')}: 30.01.2026
                   </p>
 
                   <div className="space-y-6 text-gray-800 leading-relaxed">

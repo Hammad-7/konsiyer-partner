@@ -185,7 +185,7 @@ const resources = {
         gtmSetupTitle: 'Google Tag Manager Kurulumu',
         gtmSetupSubtitle: 'Daha iyi analitik için mağazanıza GTM etiketimizi ekleyin',
         gtmContainerId: 'GTM Container ID',
-        gtmIdToCopy: 'Kopyalanacak ID: GTM-PK98KRR2',
+        gtmIdToCopy: 'Kopyalanacak ID: GTM-PH5FKW99',
         copyGtmId: 'ID\'yi Kopyala',
         viewTutorial: 'Kurulum Rehberini Görüntüle',
         gtmVerifying: 'GTM doğrulanıyor...',
@@ -588,7 +588,7 @@ const resources = {
           heading: 'Ticari Koşullar',
           commissionRate: 'Komisyon Oranı',
           attributionWindow: 'Çerez Süresi',
-          attributionWindowTooltip: 'Satışlar last-click attribution modeline göre hesaplanır.',
+          attributionWindowTooltip: 'Satışlar last non-paid click attribution modeline göre hesaplanır.',
           paymentSchedule: 'Ödeme Takvimi',
           effectiveDate: 'Yürürlük Tarihi',
           days: 'gün',
@@ -849,7 +849,9 @@ const resources = {
         tryAgain: 'Tekrar Dene',
         refresh: 'Yenile',
         noSyncData: 'Henüz senkronizasyon verisi yok.',
-        noSyncDataDesc: 'Ürünleriniz işleme başladığında burada görünecek.',
+        noSyncDataDesc: 'Ürünlerinizi senkronize etmek için aşağıdaki butona tıklayın.',
+        startSync: 'Ürün Senkronizasyonunu Başlat',
+        startingSync: 'Başlatılıyor...',
         syncInitializing: 'Ürün senkronizasyonunuz başlatılıyor...',
         loadingProcessingStatus: 'İşlem durumu yükleniyor...',
         catalogBeingProcessed: 'Ürün kataloğunuz işleniyor.',
@@ -870,6 +872,23 @@ const resources = {
         aiPoweredDiscoveryDesc: 'Ürünleriniz, müşterilerin tam olarak aradıklarını bulmalarına yardımcı olan Alfreya\'in yapay zeka destekli arama motoru aracılığıyla keşfedilebilir.',
         automaticSync: 'Otomatik Senkronizasyon',
         automaticSyncDesc: 'Ürün güncellemeleri, kataloğunuzu güncel tutmak için otomatik olarak senkronize edilir.'
+      },
+
+      // Unified Dashboard
+      unifiedDashboard: {
+        welcomeBack: 'Hoş geldiniz',
+        connectionStatus: 'Bağlantı Durumu',
+        connected: 'Bağlı',
+        dataCollecting: 'Veriler Toplanıyor',
+        dataCollectingDesc: 'Mağazanız başarıyla bağlandı. Verileriniz şu anda toplanıyor ve işleniyor.',
+        upcomingFeatures: 'Yakında Gelecek Özellikler',
+        featureSalesAnalytics: 'Satış analitiği ve performans metrikleri',
+        featureOrderTracking: 'Sipariş takibi ve yönetimi',
+        featurePerformanceMetrics: 'Detaylı performans raporları',
+        gtmNotConfigured: 'GTM Henüz Yapılandırılmadı',
+        gtmNotConfiguredDesc: 'Affiliate siparişlerini takip edebilmemiz için GTM etiketini mağazanıza eklemeniz gerekiyor.',
+        xmlFeedInfo: 'XML Feed Bilgisi',
+        xmlFeedInfoDesc: 'XML feed\'iniz otomatik olarak işleniyor. Ürün kataloğunuz güncellendikçe değişiklikler otomatik olarak senkronize edilecek.'
       },
 
       // Common
@@ -1128,7 +1147,7 @@ const resources = {
         gtmSetupTitle: 'Google Tag Manager Setup',
         gtmSetupSubtitle: 'Add our GTM tag to your store for better analytics',
         gtmContainerId: 'GTM Container ID',
-        gtmIdToCopy: 'ID to copy: GTM-PK98KRR2',
+        gtmIdToCopy: 'ID to copy: GTM-PH5FKW99',
         copyGtmId: 'Copy ID',
         viewTutorial: 'View Setup Guide',
         gtmVerifying: 'Verifying GTM...',
@@ -1215,6 +1234,61 @@ const resources = {
           classification: 'Product Classification',
           finalizing: 'Finalizing'
         }
+      },
+
+      // Shopify Dashboard
+      shopifyDashboard: {
+        title: 'Shopify Dashboard',
+        productCatalogSyncStatus: 'Product Catalog Sync Status',
+        completed: 'Completed',
+        error: 'Error',
+        processing: 'Processing',
+        unknown: 'Unknown',
+        loadingDashboard: 'Loading dashboard...',
+        errorLoadingDashboard: 'Failed to Load Dashboard',
+        tryAgain: 'Try Again',
+        refresh: 'Refresh',
+        noSyncData: 'No sync data yet.',
+        noSyncDataDesc: 'Click the button below to sync your products.',
+        startSync: 'Start Product Sync',
+        startingSync: 'Starting...',
+        syncInitializing: 'Your product synchronization is starting...',
+        loadingProcessingStatus: 'Loading processing status...',
+        catalogBeingProcessed: 'Your product catalog is being processed.',
+        processingTime: 'This may take a few minutes.',
+        currentStage: 'Current stage:',
+        initializing: 'initializing',
+        syncCompletedSuccessfully: 'Sync Completed Successfully',
+        syncCompletedDesc: 'Your product catalog has been successfully processed and is ready to use.',
+        productsFetched: 'Products Fetched',
+        publishable: 'Publishable',
+        processed: 'Processed',
+        nonApparel: 'Non-Apparel',
+        completedAt: 'Completed at:',
+        syncFailed: 'Sync Failed',
+        syncFailedDesc: 'An error occurred during processing. Please try again.',
+        aboutIntegration: 'About Your Integration',
+        aiPoweredDiscovery: 'AI-Powered Discovery',
+        aiPoweredDiscoveryDesc: 'Your products are discoverable through Alfreya\'s AI-powered search engine that helps customers find exactly what they\'re looking for.',
+        automaticSync: 'Automatic Sync',
+        automaticSyncDesc: 'Product updates are automatically synchronized to keep your catalog up to date.'
+      },
+
+      // Unified Dashboard
+      unifiedDashboard: {
+        welcomeBack: 'Welcome back',
+        connectionStatus: 'Connection Status',
+        connected: 'Connected',
+        dataCollecting: 'Data Collecting',
+        dataCollectingDesc: 'Your shop has been successfully connected. Your data is currently being collected and processed.',
+        upcomingFeatures: 'Upcoming Features',
+        featureSalesAnalytics: 'Sales analytics and performance metrics',
+        featureOrderTracking: 'Order tracking and management',
+        featurePerformanceMetrics: 'Detailed performance reports',
+        gtmNotConfigured: 'GTM Not Configured Yet',
+        gtmNotConfiguredDesc: 'You need to add the GTM tag to your store so we can track affiliate orders.',
+        xmlFeedInfo: 'XML Feed Information',
+        xmlFeedInfoDesc: 'Your XML feed is being processed automatically. Changes will be synchronized automatically as your product catalog is updated.'
       },
 
       // Invoices
@@ -1536,7 +1610,7 @@ const resources = {
           heading: 'Commercial Terms',
           commissionRate: 'Commission Rate',
           attributionWindow: 'Attribution Window',
-          attributionWindowTooltip: 'Sales are calculated using a last-click attribution model.',
+          attributionWindowTooltip: 'Sales are calculated using a last non-paid click attribution model.',
           paymentSchedule: 'Payment Schedule',
           effectiveDate: 'Effective Date',
           days: 'days',
