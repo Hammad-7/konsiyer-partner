@@ -6,20 +6,11 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
   const { t } = useTranslations();
   const { businessInfo, addressInfo, taxInfo, paymentInfo } = data;
   const [informationAccurate, setInformationAccurate] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Commercial terms (would typically come from backend/config)
-  const commercialTerms = {
-    commissionRate: '8%',
-    attributionWindow: '14',
-    paymentSchedule: 'Monthly',
-    effectiveDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  };
-
-  // Update validation based on both checkboxes
+  // Update validation based on checkbox
   useEffect(() => {
-    onValidationChange(informationAccurate && termsAccepted);
-  }, [informationAccurate, termsAccepted, onValidationChange]);
+    onValidationChange(informationAccurate);
+  }, [informationAccurate, onValidationChange]);
 
   return (
     <div className="space-y-6">
@@ -49,25 +40,15 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
             <dt className="text-sm font-medium text-gray-500">{t('onboarding.brandName')}</dt>
             <dd className="mt-1 text-sm text-gray-900">{businessInfo?.name || businessInfo?.brandName}</dd>
           </div>
+          <div className="md:col-span-2">
+            <dt className="text-sm font-medium text-gray-500">{t('onboarding.businessAddress')}</dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              <p>{addressInfo?.street}</p>
+              <p>{addressInfo?.city}, {addressInfo?.state} {addressInfo?.postalCode}</p>
+              <p>{addressInfo?.country}</p>
+            </dd>
+          </div>
         </dl>
-      </div>
-
-      {/* Address Information Summary */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <svg className="h-5 w-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {t('onboarding.businessAddress')}
-        </h3>
-        <div className="text-sm text-gray-900">
-          <p>{addressInfo?.street}</p>
-          <p>
-            {addressInfo?.city}, {addressInfo?.state} {addressInfo?.postalCode}
-          </p>
-          <p>{addressInfo?.country}</p>
-        </div>
       </div>
 
       {/* Tax Information Summary */}
@@ -133,54 +114,8 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
         </dl>
       </div>
 
-      {/* Commercial Terms */}
-      <div className="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center">
-          <svg className="h-6 w-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          {t('onboarding.commercialTerms.heading')}
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="flex justify-between items-center py-2 border-b border-indigo-200">
-            <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.commissionRate')}</span>
-            <span className="text-lg font-bold text-indigo-900">{commercialTerms.commissionRate}</span>
-          </div>
-          
-          <div className="flex justify-between items-center py-2 border-b border-indigo-200">
-            <div className="flex items-center group relative">
-              <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.attributionWindow')}</span>
-              <svg className="h-4 w-4 text-gray-400 ml-1 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
-                {t('onboarding.commercialTerms.attributionWindowTooltip')}
-              </div>
-            </div>
-            <span className="text-lg font-bold text-indigo-900">{commercialTerms.attributionWindow} {t('onboarding.commercialTerms.days')}</span>
-          </div>
-          
-          <div className="flex justify-between items-center py-2 border-b border-indigo-200">
-            <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.paymentSchedule')}</span>
-            <span className="text-lg font-bold text-indigo-900">{t(`onboarding.commercialTerms.${commercialTerms.paymentSchedule.toLowerCase()}`)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center py-2">
-            <span className="font-medium text-gray-700">{t('onboarding.commercialTerms.effectiveDate')}</span>
-            <span className="text-lg font-bold text-indigo-900">{commercialTerms.effectiveDate}</span>
-          </div>
-        </div>
-
-        <div className="mt-6 p-4 bg-white rounded-lg">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {t('onboarding.commercialTerms.applicabilityNotice')}
-          </p>
-        </div>
-      </div>
-
       {/* Mandatory Checkboxes */}
-      <div className="bg-white border-2 border-gray-300 rounded-lg p-6 space-y-4">
+      <div className="bg-white border-2 border-gray-300 rounded-lg p-6">
         <div className="flex items-start">
           <input
             type="checkbox"
@@ -191,19 +126,6 @@ const CommercialTermsStep = ({ data, onValidationChange }) => {
           />
           <label htmlFor="information-accurate" className="ml-3 text-base text-gray-900 cursor-pointer font-medium">
             {t('onboarding.commercialTerms.confirmInformationAccurate')}
-          </label>
-        </div>
-
-        <div className="flex items-start">
-          <input
-            type="checkbox"
-            id="terms-accepted"
-            className="mt-1 h-5 w-5 text-indigo-600 border-gray-300 rounded cursor-pointer focus:ring-2 focus:ring-indigo-500"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-          />
-          <label htmlFor="terms-accepted" className="ml-3 text-base text-gray-900 cursor-pointer font-medium">
-            {t('onboarding.commercialTerms.acceptCommercialTerms')}
           </label>
         </div>
       </div>

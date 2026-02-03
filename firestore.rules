@@ -111,7 +111,9 @@ service cloud.firestore {
                        // Users can set status to 'draft', 'pending_review', or 'approved'
                        (request.resource.data.status == 'draft' || 
                         request.resource.data.status == 'pending_review' ||
-                        request.resource.data.status == 'approved');
+                        request.resource.data.status == 'approved') ||
+                    // Admins can update any application for approval/rejection
+                    isAdmin();
       
       // Delete: Only admins can delete applications
       allow delete: if isAdmin();

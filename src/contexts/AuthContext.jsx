@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }) => {
         if (existingData.promotedBy) userData.promotedBy = existingData.promotedBy;
         if (existingData.promotedAt) userData.promotedAt = existingData.promotedAt;
         if (existingData.createdAt) userData.createdAt = existingData.createdAt;
+        else userData.createdAt = serverTimestamp(); // Set if missing
         
         await setDoc(userRef, userData, { merge: true });
       } else {
